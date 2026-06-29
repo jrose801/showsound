@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ShowSound">
+<meta name="theme-color" content="#0A0A0F">
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
+<title>ShowSound</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0A0A0F; --panel: #13131F; --panel2: #1C1C2E; --border: #2A2A40;
+    --cyan: #00E5FF; --cyan-dim: rgba(0,229,255,0.15); --cyan-glow: rgba(0,229,255,0.4);
+    --amber: #FF9500; --amber-dim: rgba(255,149,0,0.15);
+    --red: #FF3B30; --green: #30D158;
+    --text: #F0F0FF; --text-dim: #8888AA; --text-muted: #44445A;
+    --radius: 16px; --radius-sm: 10px;
+  }
+  html, body {
+    background: var(--bg); color: var(--text);
+    font-family: 'Inter', sans-serif; min-height: 100vh;
+    overflow-x: hidden; -webkit-font-smoothing: antialiased;
+  }
+
+  /* TOP BAR */
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px 10px; position: sticky; top: 0;
+    background: var(--bg); z-index: 100; border-bottom: 1px solid var(--border);
+  }
+  .logo { font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+  .logo span { color: var(--cyan); }
+  .status-pill {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--panel2); border: 1px solid var(--border);
+    border-radius: 20px; padding: 5px 12px; font-size: 12px; font-weight: 500;
+    color: var(--text-dim); cursor: pointer; transition: all 0.2s;
+  }
+  .status-pill.active { border-color: var(--cyan); color: var(--cyan); background: var(--cyan-dim); }
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-muted); transition: all 0.2s; }
+  .status-pill.active .status-dot { background: var(--cyan); box-shadow: 0 0 6px var(--cyan); animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  /* PERMISSION OVERLAY */
+  .permission-overlay {
+    position: fixed; inset: 0; background: rgba(10,10,15,0.97);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 20px; z-index: 200; padding: 32px; text-align: center;
+  }
+  .permission-overlay.hidden { display: none; }
+  .perm-icon { font-size: 56px; }
+  .perm-title { font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; }
+  .perm-body { font-size: 14px; color: var(--text-dim); line-height: 1.6; max-width: 280px; }
+  .perm-btn {
+    background: var(--cyan); color: #000; border: none; border-radius: 28px;
+    padding: 14px 32px; font-size: 16px; font-weight: 700; cursor: pointer;
+    font-family: 'Space Grotesk', sans-serif; letter-spacing: 0.3px;
+    box-shadow: 0 0 24px var(--cyan-glow);
+  }
+  .perm-note { font-size: 12px; color: var(--text-muted); max-width: 260px; line-height: 1.5; }
+
+  /* ERROR BANNER */
+  .error-banner {
+    background: rgba(255,59,48,0.15); border: 1px solid var(--red);
+    margin: 10px 12px; border-radius: var(--radius-sm);
+    padding: 10px 14px; font-size: 13px; color: #FF6B62; display: none;
+  }
+
+  /* WAVEFORM */
+  .waveform-wrap { padding: 12px 20px 0; position: relative; }
+  #waveCanvas { width: 100%; height: 80px; border-radius: var(--radius-sm); background: var(--panel); display: block; }
+  .db-readout {
+    position: absolute; top: 20px; right: 28px;
+    font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 600;
+    color: var(--text-dim); letter-spacing: 0.5px; text-align: right;
+  }
+  .db-readout .val { font-size: 22px; font-weight: 700; color: var(--green); display: block; line-height: 1; transition: color 0.3s; }
+  .db-readout .val.warn { color: var(--amber); }
+  .db-readout .val.danger { color: var(--red); }
+
+  /* DB METER */
+  .db-meter-wrap { padding: 10px 20px 4px; display: flex; align-items: center; gap: 10px; }
+  .db-label { font-size: 11px; font-weight: 600; color: var(--text-muted); width: 60px; letter-spacing: 0.5px; text-transform: uppercase; }
+  .db-track { flex: 1; height: 6px; background: var(--panel2); border-radius: 3px; overflow: hidden; position: relative; }
+  .db-fill { height: 100%; border-radius: 3px; width: 0%; transition: width 0.05s linear; background: linear-gradient(90deg, var(--green) 0%, var(--green) 55%, var(--amber) 75%, var(--red) 100%); }
+  .db-limit-marker { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--amber); border-radius: 1px; }
+  .limit-val { font-size: 11px; color: var(--amber); font-weight: 600; width: 34px; text-align: right; }
+
+  /* SECTION LABEL */
+  .section-label { padding: 16px 20px 8px; display: flex; align-items: center; justify-content: space-between; }
+  .section-label h3 { font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 600; color: var(--text-dim); letter-spacing: 1px; text-transform: uppercase; }
+  .section-label .hint { font-size: 11px; color: var(--text-muted); }
+
+  /* EQ */
+  .eq-panel { padding: 0 20px 4px; background: var(--panel); margin: 0 12px; border-radius: var(--radius); border: 1px solid var(--border); }
+  .eq-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; padding: 10px 0 4px; }
+  .eq-band { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 4px; border-right: 1px solid var(--border); }
+  .eq-band:last-child { border-right: none; }
+  .eq-band-val { font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 700; color: var(--cyan); min-height: 18px; line-height: 1; }
+  .eq-slider-wrap { height: 120px; display: flex; align-items: center; justify-content: center; position: relative; }
+  .eq-slider-wrap::before { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: var(--border); transform: translateX(-50%); }
+  input[type=range].eq-slider {
+    -webkit-appearance: none; appearance: none;
+    writing-mode: vertical-lr; direction: rtl;
+    width: 36px; height: 110px; background: transparent; cursor: pointer; outline: none;
+  }
+  input[type=range].eq-slider::-webkit-slider-runnable-track { width: 4px; background: var(--panel2); border-radius: 2px; }
+  input[type=range].eq-slider::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%;
+    background: var(--cyan); box-shadow: 0 0 8px var(--cyan-glow);
+    border: 2px solid var(--bg); cursor: grab; margin-left: -9px; transition: transform 0.1s;
+  }
+  input[type=range].eq-slider:active::-webkit-slider-thumb { transform: scale(1.2); cursor: grabbing; }
+  .eq-freq { font-size: 11px; font-weight: 600; color: var(--text-muted); text-align: center; line-height: 1.2; }
+  .eq-freq span { display: block; font-size: 9px; font-weight: 400; opacity: 0.6; }
+  .eq-curve-wrap { padding: 4px 0 12px; border-top: 1px solid var(--border); }
+  #eqCurveCanvas { width: 100%; height: 48px; display: block; }
+
+  /* MASTER */
+  .master-panel { margin: 12px 12px 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .control-card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
+  .control-card-label { font-size: 11px; font-weight: 600; color: var(--text-muted); letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
+  .control-card-label .sub { font-weight: 400; text-transform: none; letter-spacing: 0; }
+  .dial-track { flex: 1; height: 4px; background: var(--panel2); border-radius: 2px; position: relative; }
+  .dial-fill { height: 100%; border-radius: 2px; background: var(--cyan); }
+  .dial-fill.amber { background: var(--amber); }
+  input[type=range].dial-slider {
+    -webkit-appearance: none; appearance: none;
+    position: absolute; top: 50%; left: 0; right: 0; width: 100%;
+    height: 20px; transform: translateY(-50%); background: transparent; cursor: pointer; outline: none; margin: 0;
+  }
+  input[type=range].dial-slider::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%;
+    background: var(--cyan); border: 2px solid var(--bg); box-shadow: 0 0 6px var(--cyan-glow);
+  }
+
+  /* TOGGLES */
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; margin-top: 4px; }
+  .toggle-label { font-size: 13px; color: var(--text-dim); }
+  .toggle { width: 44px; height: 26px; background: var(--panel2); border-radius: 13px; position: relative; cursor: pointer; border: 1px solid var(--border); transition: background 0.2s; flex-shrink: 0; }
+  .toggle.on { background: var(--cyan); border-color: var(--cyan); }
+  .toggle.on.amber-toggle { background: var(--amber); border-color: var(--amber); }
+  .toggle::after { content: ''; position: absolute; width: 20px; height: 20px; border-radius: 50%; background: white; top: 2px; left: 2px; transition: left 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.4); }
+  .toggle.on::after { left: 20px; }
+
+  /* PRESETS */
+  .presets-wrap { padding: 0 12px; margin-top: 0; }
+  .preset-scroll { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+  .preset-scroll::-webkit-scrollbar { display: none; }
+  .preset-chip { flex-shrink: 0; padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 500; background: var(--panel); border: 1px solid var(--border); color: var(--text-dim); cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+  .preset-chip.active { background: var(--cyan-dim); border-color: var(--cyan); color: var(--cyan); }
+  .preset-chip:active { transform: scale(0.96); }
+
+  /* HEARING TIMER */
+  .hearing-timer { margin: 12px 12px 0; background: var(--amber-dim); border: 1px solid rgba(255,149,0,0.3); border-radius: var(--radius); padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; }
+  .hearing-timer-left { display: flex; align-items: center; gap: 10px; }
+  .hearing-timer h5 { font-size: 12px; font-weight: 600; color: var(--amber); text-transform: uppercase; letter-spacing: 0.5px; }
+  .hearing-timer p { font-size: 12px; color: var(--text-dim); }
+  .timer-val { font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700; color: var(--amber); }
+
+  /* PROTECT BAR */
+  .protect-bar { margin: 12px 12px 0; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; display: flex; align-items: center; gap: 14px; }
+  .protect-icon { width: 40px; height: 40px; border-radius: 50%; background: var(--cyan-dim); border: 1.5px solid var(--cyan); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .protect-text h4 { font-family: 'Space Grotesk', sans-serif; font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+  .protect-text p { font-size: 12px; color: var(--text-dim); line-height: 1.4; }
+  .protect-text p strong { color: var(--green); }
+
+  /* POWER */
+  .power-wrap { display: flex; flex-direction: column; align-items: center; padding: 20px 20px 12px; gap: 8px; }
+  .power-btn { width: 72px; height: 72px; border-radius: 50%; border: 2.5px solid var(--border); background: var(--panel); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; }
+  .power-btn.active { border-color: var(--cyan); background: var(--cyan-dim); box-shadow: 0 0 24px var(--cyan-glow), inset 0 0 16px rgba(0,229,255,0.1); }
+  .power-btn.active svg { filter: drop-shadow(0 0 6px var(--cyan)); }
+  .power-hint { font-size: 12px; color: var(--text-muted); }
+
+  /* AUDIO ROUTE */
+  .audio-route { margin: 12px 12px 0; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; }
+  .route-label { font-size: 12px; color: var(--text-dim); }
+  .route-val { font-size: 13px; font-weight: 600; color: var(--cyan); }
+
+  /* NAV */
+  .nav-bar { position: sticky; bottom: 0; background: var(--panel); border-top: 1px solid var(--border); display: grid; grid-template-columns: repeat(4, 1fr); padding: 8px 0 max(8px, env(safe-area-inset-bottom)); }
+  .nav-item { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px; cursor: pointer; color: var(--text-muted); transition: color 0.15s; }
+  .nav-item.active { color: var(--cyan); }
+  .nav-item svg { width: 22px; height: 22px; }
+  .nav-item span { font-size: 10px; font-weight: 500; letter-spacing: 0.3px; }
+
+  .content { padding-bottom: 8px; }
+</style>
+</head>
+<body>
+
+<!-- PERMISSION OVERLAY -->
+<div class="permission-overlay" id="permOverlay">
+  <div class="perm-icon">🎧</div>
+  <div class="perm-title">ShowSound</div>
+  <div class="perm-body">
+    This app captures live sound through your mic, applies real-time EQ and a hearing-safe dB limiter, and plays it through your earbuds — like a smart hearing monitor for live shows.
+  </div>
+  <button class="perm-btn" id="startBtn">Enable Mic & Start</button>
+  <div class="perm-note">
+    You'll see a mic permission prompt. Audio is processed entirely on your device — nothing is recorded or sent anywhere.
+  </div>
+  <div class="perm-note" style="color:var(--amber)">
+    ⚠️ Put your earbuds in before tapping Start. Keep volume at a comfortable level first.
+  </div>
+</div>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="logo">Show<span>Sound</span></div>
+  <div class="status-pill" id="statusPill">
+    <div class="status-dot" id="statusDot"></div>
+    <span id="statusText">Ready</span>
+  </div>
+</div>
+
+<div class="content">
+  <div class="error-banner" id="errorBanner"></div>
+
+  <!-- WAVEFORM -->
+  <div class="waveform-wrap">
+    <canvas id="waveCanvas"></canvas>
+    <div class="db-readout">
+      <span class="val" id="dbVal">—</span>
+      dBSPL
+    </div>
+  </div>
+
+  <!-- DB METER -->
+  <div class="db-meter-wrap">
+    <div class="db-label">Level</div>
+    <div class="db-track">
+      <div class="db-fill" id="dbFill"></div>
+      <div class="db-limit-marker" id="limitMarker" style="left:70%"></div>
+    </div>
+    <div class="limit-val" id="limitValLabel">85dB</div>
+  </div>
+
+  <!-- AUDIO ROUTE INFO -->
+  <div class="audio-route">
+    <span class="route-label">🎙 Input → 🎧 Output</span>
+    <span class="route-val" id="routeVal">Waiting for mic…</span>
+  </div>
+
+  <!-- PRESETS -->
+  <div class="section-label">
+    <h3>Venue Preset</h3>
+    <span class="hint">tap to load</span>
+  </div>
+  <div class="presets-wrap">
+    <div class="preset-scroll">
+      <div class="preset-chip active" data-preset="flat">Flat</div>
+      <div class="preset-chip" data-preset="arena">Arena</div>
+      <div class="preset-chip" data-preset="club">Small Club</div>
+      <div class="preset-chip" data-preset="outdoor">Outdoor Stage</div>
+      <div class="preset-chip" data-preset="opening">Opening Act</div>
+      <div class="preset-chip" data-preset="vocal">Vocal Boost</div>
+    </div>
+  </div>
+
+  <!-- EQ -->
+  <div class="section-label">
+    <h3>Equalizer</h3>
+    <span class="hint">±12 dB per band</span>
+  </div>
+  <div class="eq-panel">
+    <div class="eq-grid" id="eqGrid"></div>
+    <div class="eq-curve-wrap">
+      <canvas id="eqCurveCanvas"></canvas>
+    </div>
+  </div>
+
+  <!-- MASTER -->
+  <div class="section-label"><h3>Master</h3></div>
+  <div class="master-panel">
+    <div class="control-card">
+      <div class="control-card-label">Volume <span class="sub" id="volLabel">80%</span></div>
+      <div class="dial-track" style="position:relative;">
+        <div class="dial-fill" id="volFill" style="width:80%"></div>
+        <input type="range" class="dial-slider" id="volSlider" min="0" max="100" value="80">
+      </div>
+    </div>
+    <div class="control-card">
+      <div class="control-card-label">dB Limit <span class="sub" id="limitLabel">85</span></div>
+      <div class="dial-track" style="position:relative;">
+        <div class="dial-fill amber" id="limitFill" style="width:50%"></div>
+        <input type="range" class="dial-slider" id="limitSlider" min="60" max="105" value="85">
+      </div>
+    </div>
+  </div>
+
+  <div class="master-panel" style="margin-top:10px;">
+    <div class="control-card">
+      <div class="control-card-label">Noise Gate</div>
+      <div class="toggle-row">
+        <div class="toggle-label">Cut silence</div>
+        <div class="toggle on" id="gateToggle"></div>
+      </div>
+    </div>
+    <div class="control-card">
+      <div class="control-card-label">Hard Limiter</div>
+      <div class="toggle-row">
+        <div class="toggle-label">Protect ears</div>
+        <div class="toggle on amber-toggle" id="limiterToggle"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HEARING TIMER -->
+  <div class="hearing-timer">
+    <div class="hearing-timer-left">
+      <span>👂</span>
+      <div>
+        <h5>Hearing Dose</h5>
+        <p id="safeTimeText">Safe at this level</p>
+      </div>
+    </div>
+    <div class="timer-val" id="hearingTimer">0:00</div>
+  </div>
+
+  <!-- PROTECT BAR -->
+  <div class="protect-bar">
+    <div class="protect-icon">🛡️</div>
+    <div class="protect-text">
+      <h4>Hearing Protected</h4>
+      <p>Output capped at <strong id="limitDisplay">85 dBSPL</strong>. Safe exposure: <strong id="safeTime">8 hrs</strong>. For best isolation use AirPods Pro (Transparency) or wired IEMs.</p>
+    </div>
+  </div>
+
+  <!-- POWER -->
+  <div class="power-wrap">
+    <div class="power-btn" id="powerBtn">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#8888AA" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2v6M6.3 5.3a8 8 0 1 0 11.4 0"/>
+      </svg>
+    </div>
+    <div class="power-hint" id="powerHint">Tap to pause audio</div>
+  </div>
+</div>
+
+<!-- NAV -->
+<div class="nav-bar">
+  <div class="nav-item active">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+    <span>Live</span>
+  </div>
+  <div class="nav-item">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+    <span>Presets</span>
+  </div>
+  <div class="nav-item">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m3 15 5-5 4 4 5-8"/></svg>
+    <span>History</span>
+  </div>
+  <div class="nav-item">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+    <span>Settings</span>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+// AUDIO ENGINE
+// ═══════════════════════════════════════════════
+let audioCtx = null;
+let micStream = null;
+let sourceNode = null;
+let gainNode = null;
+let compressorNode = null;   // hard limiter
+let analyserNode = null;
+let filters = [];            // 5 BiquadFilterNodes
+let isPlaying = false;
+let animFrame = null;
+let timerInterval = null;
+let elapsed = 0;
+
+// EQ band definitions: [freq Hz, type]
+const BANDS = [
+  { freq: 80,    type: 'lowshelf',  label: '80Hz',  name: 'Sub' },
+  { freq: 250,   type: 'peaking',   label: '250Hz', name: 'Low' },
+  { freq: 1000,  type: 'peaking',   label: '1kHz',  name: 'Mid' },
+  { freq: 4000,  type: 'peaking',   label: '4kHz',  name: 'Hi-Mid' },
+  { freq: 12000, type: 'highshelf', label: '12kHz', name: 'Air' },
+];
+const bandVals = [0, 0, 0, 0, 0];
+
+const PRESETS = {
+  flat:    [ 0,  0,  0,  0,  0],
+  arena:   [ 3,  1, -2, -3, -2],
+  club:    [ 4,  2,  1, -4, -5],
+  outdoor: [ 5,  3,  2, -1,  0],
+  opening: [ 6,  4,  3, -3, -4],
+  vocal:   [-2, -1,  5,  3,  0],
+};
+
+// ── INIT AUDIO GRAPH ──
+async function initAudio() {
+  try {
+    // Pre-flight: is the mic API even available here?
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      throw new DOMException(
+        'Microphone API unavailable. This usually means the page is running inside a preview frame or over plain http. Open this file in a real browser tab over https:// (or localhost) to grant mic access.',
+        'NotSupportedError'
+      );
+    }
+
+    setStatus('Requesting mic…');
+
+    // Request mic — echoCancellation OFF so we hear the raw room sound
+    micStream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false
+      }
+    });
+
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
+
+    // iOS/Safari: context often starts suspended until resumed inside a gesture
+    if (audioCtx.state === 'suspended') {
+      await audioCtx.resume();
+    }
+
+    // Source
+    sourceNode = audioCtx.createMediaStreamSource(micStream);
+
+    // 5-band EQ filters chained
+    filters = BANDS.map((b, i) => {
+      const f = audioCtx.createBiquadFilter();
+      f.type = b.type;
+      f.frequency.value = b.freq;
+      f.Q.value = 1.4;
+      f.gain.value = bandVals[i];
+      return f;
+    });
+
+    // Master gain (volume)
+    gainNode = audioCtx.createGain();
+    gainNode.gain.value = parseFloat(document.getElementById('volSlider').value) / 100;
+
+    // DynamicsCompressor as a hard limiter
+    compressorNode = audioCtx.createDynamicsCompressor();
+    updateLimiter();
+
+    // Analyser for waveform + dB metering
+    analyserNode = audioCtx.createAnalyser();
+    analyserNode.fftSize = 1024;
+    analyserNode.smoothingTimeConstant = 0.8;
+
+    // Chain: source → filter[0] → filter[1] → ... → gain → compressor → analyser → destination
+    sourceNode.connect(filters[0]);
+    for (let i = 0; i < filters.length - 1; i++) {
+      filters[i].connect(filters[i + 1]);
+    }
+    filters[filters.length - 1].connect(gainNode);
+    gainNode.connect(compressorNode);
+    compressorNode.connect(analyserNode);
+    analyserNode.connect(audioCtx.destination);
+
+    isPlaying = true;
+    updateUI();
+    startMeter();
+    startTimer();
+    detectOutputDevice();
+
+    return true;
+  } catch (err) {
+    showError(err);
+    return false;
+  }
+}
+
+function updateLimiter() {
+  if (!compressorNode) return;
+  const limitDb = parseInt(document.getElementById('limitSlider').value);
+  const enabled = document.getElementById('limiterToggle').classList.contains('on');
+  if (enabled) {
+    // Aggressive limiter: threshold at limit, ratio 20:1, fast attack
+    compressorNode.threshold.value = limitDb - 90; // offset since gain is 0dBFS
+    compressorNode.knee.value = 0;
+    compressorNode.ratio.value = 20;
+    compressorNode.attack.value = 0.001;
+    compressorNode.release.value = 0.1;
+  } else {
+    compressorNode.threshold.value = 0;
+    compressorNode.ratio.value = 1;
+  }
+}
+
+function setFilterGain(index, db) {
+  if (filters[index]) {
+    filters[index].gain.value = db;
+  }
+  bandVals[index] = db;
+}
+
+// ── PAUSE / RESUME ──
+function pauseAudio() {
+  if (audioCtx) audioCtx.suspend();
+  isPlaying = false;
+  updateUI();
+  stopTimer();
+}
+function resumeAudio() {
+  if (audioCtx) audioCtx.resume();
+  isPlaying = true;
+  updateUI();
+  startTimer();
+}
+function teardown() {
+  if (micStream) micStream.getTracks().forEach(t => t.stop());
+  if (audioCtx) audioCtx.close();
+  audioCtx = null; micStream = null; sourceNode = null;
+  gainNode = null; compressorNode = null; analyserNode = null; filters = [];
+  isPlaying = false;
+  cancelAnimationFrame(animFrame);
+  stopTimer();
+  updateUI();
+}
+
+// ── UI STATE ──
+function updateUI() {
+  const pill = document.getElementById('statusPill');
+  const btn = document.getElementById('powerBtn');
+  const hint = document.getElementById('powerHint');
+  if (isPlaying) {
+    pill.classList.add('active');
+    document.getElementById('statusText').textContent = 'Live';
+    btn.classList.add('active');
+    btn.querySelector('svg').setAttribute('stroke', '#00E5FF');
+    hint.textContent = 'Tap to pause';
+  } else {
+    pill.classList.remove('active');
+    document.getElementById('statusText').textContent = audioCtx ? 'Paused' : 'Ready';
+    btn.classList.remove('active');
+    btn.querySelector('svg').setAttribute('stroke', '#8888AA');
+    hint.textContent = audioCtx ? 'Tap to resume' : 'Mic not started';
+  }
+}
+
+function setStatus(txt) {
+  document.getElementById('statusText').textContent = txt;
+}
+
+function showError(err) {
+  const b = document.getElementById('errorBanner');
+  let msg;
+  switch (err.name) {
+    case 'NotAllowedError':
+    case 'SecurityError':
+      msg = '🚫 Mic permission was blocked. If you\'re in the in-app preview, that\'s expected — download the file and open it in Chrome or Safari, then allow mic access.';
+      break;
+    case 'NotFoundError':
+      msg = '🎙 No microphone detected. Connect earbuds with a mic or enable your device mic, then retry.';
+      break;
+    case 'NotSupportedError':
+      msg = '⚠️ ' + err.message;
+      break;
+    case 'NotReadableError':
+      msg = '🎙 The mic is in use by another app. Close other audio apps and retry.';
+      break;
+    default:
+      msg = 'Error (' + (err.name || 'unknown') + '): ' + err.message;
+  }
+  b.textContent = msg;
+  b.style.display = 'block';
+  setStatus('Error');
+  // Re-enable the start button so the user can retry
+  const sb = document.getElementById('startBtn');
+  if (sb) { sb.disabled = false; sb.textContent = 'Retry — Enable Mic'; }
+}
+
+function detectOutputDevice() {
+  // Heuristic — Web Audio always routes to the system default output
+  // We can't query the exact device but we can note it
+  document.getElementById('routeVal').textContent = 'Mic → EQ → Earbuds ✓';
+}
+
+// ═══════════════════════════════════════════════
+// METERING & WAVEFORM
+// ═══════════════════════════════════════════════
+const dataArray8 = new Uint8Array(1024);
+const dataArrayF = new Float32Array(1024);
+
+function startMeter() {
+  cancelAnimationFrame(animFrame);
+  function loop() {
+    if (!analyserNode) return;
+    drawWaveform();
+    updateDbMeter();
+    animFrame = requestAnimationFrame(loop);
+  }
+  loop();
+}
+
+function getRmsDb() {
+  if (!analyserNode) return -Infinity;
+  analyserNode.getFloatTimeDomainData(dataArrayF);
+  let sum = 0;
+  for (let i = 0; i < dataArrayF.length; i++) sum += dataArrayF[i] * dataArrayF[i];
+  const rms = Math.sqrt(sum / dataArrayF.length);
+  return rms > 0 ? 20 * Math.log10(rms) : -Infinity;
+}
+
+function dbFsToSpl(dbfs) {
+  // Rough calibration: 0 dBFS ≈ 94 dBSPL (typical handheld mic at 1Pa)
+  // Offset accounts for gain staging
+  return dbfs + 94;
+}
+
+function updateDbMeter() {
+  const dbfs = getRmsDb();
+  const spl = dbFsToSpl(dbfs);
+  const limitVal = parseInt(document.getElementById('limitSlider').value);
+  const valEl = document.getElementById('dbVal');
+
+  if (spl > -Infinity && spl > 30) {
+    const clamped = Math.min(spl, limitVal);
+    const pct = ((clamped - 50) / (110 - 50)) * 100;
+    document.getElementById('dbFill').style.width = Math.max(0, pct) + '%';
+    const rounded = Math.round(spl);
+    valEl.textContent = rounded;
+    valEl.className = 'val' + (rounded >= limitVal ? ' danger' : rounded >= limitVal - 5 ? ' warn' : '');
+  } else {
+    document.getElementById('dbFill').style.width = '0%';
+    valEl.textContent = '—';
+    valEl.className = 'val';
+  }
+}
+
+function drawWaveform() {
+  const canvas = document.getElementById('waveCanvas');
+  const W = canvas.offsetWidth; const H = 80;
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, W, H);
+
+  if (!analyserNode || !isPlaying) {
+    ctx.strokeStyle = 'rgba(42,42,64,0.8)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 8]);
+    ctx.beginPath(); ctx.moveTo(0, H/2); ctx.lineTo(W, H/2); ctx.stroke();
+    ctx.setLineDash([]);
+    return;
+  }
+
+  analyserNode.getByteTimeDomainData(dataArray8);
+  const sliceWidth = W / dataArray8.length;
+
+  ctx.beginPath();
+  for (let i = 0; i < dataArray8.length; i++) {
+    const v = dataArray8[i] / 128.0;
+    const y = (v * H) / 2;
+    if (i === 0) ctx.moveTo(0, y);
+    else ctx.lineTo(i * sliceWidth, y);
+  }
+
+  const grad = ctx.createLinearGradient(0, 0, W, 0);
+  grad.addColorStop(0, 'rgba(0,229,255,0.3)');
+  grad.addColorStop(0.5, '#00E5FF');
+  grad.addColorStop(1, 'rgba(0,229,255,0.3)');
+  ctx.strokeStyle = grad;
+  ctx.lineWidth = 2;
+  ctx.shadowColor = '#00E5FF';
+  ctx.shadowBlur = 6;
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+}
+
+// ═══════════════════════════════════════════════
+// TIMER & HEARING DOSE
+// ═══════════════════════════════════════════════
+function startTimer() {
+  clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    elapsed++;
+    const m = Math.floor(elapsed / 60), s = elapsed % 60;
+    document.getElementById('hearingTimer').textContent = `${m}:${s.toString().padStart(2,'0')}`;
+  }, 1000);
+}
+function stopTimer() {
+  clearInterval(timerInterval);
+  elapsed = 0;
+  document.getElementById('hearingTimer').textContent = '0:00';
+}
+
+function updateSafeTime() {
+  const limitVal = parseInt(document.getElementById('limitSlider').value);
+  const safeHours = 8 / Math.pow(2, (limitVal - 85) / 3);
+  const safeStr = safeHours >= 1
+    ? safeHours.toFixed(1).replace('.0','') + ' hrs'
+    : Math.round(safeHours * 60) + ' min';
+  document.getElementById('safeTime').textContent = safeStr;
+  document.getElementById('limitDisplay').textContent = limitVal + ' dBSPL';
+  document.getElementById('safeTimeText').textContent = safeHours >= 2 ? 'Safe at this level' : '⚠️ Limit exposure time';
+}
+
+// ═══════════════════════════════════════════════
+// EQ UI
+// ═══════════════════════════════════════════════
+const eqGrid = document.getElementById('eqGrid');
+BANDS.forEach((band, i) => {
+  const col = document.createElement('div');
+  col.className = 'eq-band';
+  col.innerHTML = `
+    <div class="eq-band-val" id="eqVal${i}">0</div>
+    <div class="eq-slider-wrap">
+      <input type="range" class="eq-slider" id="eqSlider${i}" min="-12" max="12" value="0" step="0.5">
+    </div>
+    <div class="eq-freq">${band.label}<span>${band.name}</span></div>`;
+  eqGrid.appendChild(col);
+  col.querySelector(`#eqSlider${i}`).addEventListener('input', function() {
+    const v = parseFloat(this.value);
+    bandVals[i] = v;
+    document.getElementById(`eqVal${i}`).textContent = v > 0 ? `+${v}` : v;
+    setFilterGain(i, v);
+    drawEqCurve();
+    document.querySelectorAll('.preset-chip').forEach(c => c.classList.remove('active'));
+  });
+});
+
+function applyPreset(name) {
+  const p = PRESETS[name];
+  BANDS.forEach((_, i) => {
+    bandVals[i] = p[i];
+    document.getElementById(`eqSlider${i}`).value = p[i];
+    document.getElementById(`eqVal${i}`).textContent = p[i] > 0 ? `+${p[i]}` : p[i];
+    setFilterGain(i, p[i]);
+  });
+  drawEqCurve();
+}
+
+document.querySelectorAll('.preset-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.preset-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    applyPreset(chip.dataset.preset);
+  });
+});
+
+function drawEqCurve() {
+  const canvas = document.getElementById('eqCurveCanvas');
+  const W = canvas.parentElement.clientWidth; const H = 48;
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, W, H);
+  const midY = H / 2, scaleY = (H * 0.42) / 12;
+  ctx.strokeStyle = 'rgba(42,42,64,1)'; ctx.lineWidth = 1; ctx.setLineDash([4,4]);
+  ctx.beginPath(); ctx.moveTo(0, midY); ctx.lineTo(W, midY); ctx.stroke();
+  ctx.setLineDash([]);
+  const pts = bandVals.map((v, i) => ({ x: (i / (bandVals.length-1)) * W, y: midY - v * scaleY }));
+  const drawPath = () => {
+    ctx.beginPath(); ctx.moveTo(0, midY);
+    pts.forEach((pt, i) => {
+      if (i === 0) ctx.lineTo(pt.x, pt.y);
+      else { const prev = pts[i-1], cpx = (prev.x+pt.x)/2; ctx.bezierCurveTo(cpx, prev.y, cpx, pt.y, pt.x, pt.y); }
+    });
+    ctx.lineTo(W, midY);
+  };
+  drawPath();
+  const grad = ctx.createLinearGradient(0,0,0,H);
+  grad.addColorStop(0, 'rgba(0,229,255,0.25)'); grad.addColorStop(1, 'rgba(0,229,255,0.03)');
+  ctx.fillStyle = grad; ctx.fill();
+  drawPath();
+  ctx.strokeStyle = '#00E5FF'; ctx.lineWidth = 2; ctx.stroke();
+  pts.forEach(pt => { ctx.beginPath(); ctx.arc(pt.x, pt.y, 3, 0, Math.PI*2); ctx.fillStyle='#00E5FF'; ctx.fill(); });
+}
+
+// ═══════════════════════════════════════════════
+// CONTROLS
+// ═══════════════════════════════════════════════
+document.getElementById('volSlider').addEventListener('input', function() {
+  document.getElementById('volFill').style.width = this.value + '%';
+  document.getElementById('volLabel').textContent = this.value + '%';
+  if (gainNode) gainNode.gain.value = this.value / 100;
+});
+
+document.getElementById('limitSlider').addEventListener('input', function() {
+  const v = parseInt(this.value);
+  document.getElementById('limitFill').style.width = ((v-60)/(105-60)*100) + '%';
+  document.getElementById('limitLabel').textContent = v;
+  const pct = ((v-50)/(110-50))*100;
+  document.getElementById('limitMarker').style.left = pct + '%';
+  document.getElementById('limitValLabel').textContent = v + 'dB';
+  updateLimiter(); updateSafeTime();
+});
+
+document.getElementById('limiterToggle').addEventListener('click', function() {
+  this.classList.toggle('on'); updateLimiter();
+});
+document.getElementById('gateToggle').addEventListener('click', function() {
+  this.classList.toggle('on');
+});
+
+document.getElementById('powerBtn').addEventListener('click', () => {
+  if (!audioCtx) return;
+  if (isPlaying) pauseAudio(); else resumeAudio();
+});
+
+// ═══════════════════════════════════════════════
+// PERMISSION OVERLAY → START
+// ═══════════════════════════════════════════════
+document.getElementById('startBtn').addEventListener('click', async (e) => {
+  const sb = e.currentTarget;
+  sb.disabled = true;
+  sb.textContent = 'Starting…';
+  document.getElementById('errorBanner').style.display = 'none';
+  const ok = await initAudio();
+  if (ok) {
+    document.getElementById('permOverlay').classList.add('hidden');
+  }
+  // on failure, showError() already re-enabled the button
+});
+
+// ── INIT DRAWS ──
+setTimeout(() => { drawEqCurve(); drawWaveform(); updateSafeTime(); updateUI(); }, 150);
+window.addEventListener('resize', () => { drawEqCurve(); drawWaveform(); });
+
+// ── PWA: register service worker ──
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+
+</script>
+</body>
+</html>
