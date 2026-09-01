@@ -238,12 +238,11 @@
   <div class="modal-icon">🎸</div>
   <div class="modal-title">Show Mode On</div>
   <div class="modal-body">
-    ShowSound will keep your screen awake so audio doesn't stop during your show.<br><br>
-    <strong style="color:var(--text)">For best results:</strong> set Auto-Lock to Never in iPhone Settings → Display &amp; Brightness → Auto-Lock.<br><br>
-    <span style="color:var(--amber)">⚠️ Note: pressing the side button to manually lock your phone will still stop audio. Keep your screen on during the show.</span>
+    ShowSound is keeping your screen awake so audio doesn't stop during your show.<br><br>
+    <strong style="color:var(--text)">Tip:</strong> Go to iPhone Settings → Display &amp; Brightness → Auto-Lock and set it to <strong style="color:var(--text)">Never</strong> for the most reliable experience.<br><br>
+    <span style="color:var(--amber)">⚠️ Pressing the side button to manually lock your phone will still stop audio. Keep your screen on during the show.</span>
   </div>
-  <button class="modal-btn" id="showModeSettingsBtn">Open Display Settings</button>
-  <button class="modal-btn-secondary" id="showModeSkipBtn">Got it — let's go</button>
+  <button class="modal-btn" id="showModeGotItBtn">Got it</button>
 </div>
 
 <!-- TOP BAR -->
@@ -892,16 +891,7 @@ function showShowModePrompt() {
   document.getElementById('showModeModal').classList.remove('hidden');
 }
 
-document.getElementById('showModeSettingsBtn').addEventListener('click', () => {
-  localStorage.setItem('showModePromptShown', 'true');
-  showModePromptShown = true;
-  document.getElementById('showModeModal').classList.add('hidden');
-  // Deep link to iOS Display & Brightness settings
-  window.location.href = 'App-Prefs:DISPLAY';
-  setTimeout(() => { window.location.href = 'prefs:root=DISPLAY'; }, 300);
-});
-
-document.getElementById('showModeSkipBtn').addEventListener('click', () => {
+document.getElementById('showModeGotItBtn').addEventListener('click', () => {
   localStorage.setItem('showModePromptShown', 'true');
   showModePromptShown = true;
   document.getElementById('showModeModal').classList.add('hidden');
