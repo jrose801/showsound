@@ -447,13 +447,45 @@ async function initAudio() {
     setStatus('Requesting mic…');
 
     // Request mic — echoCancellation OFF so we hear the raw room sound
-    micStream = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        echoCancellation: false,
-        noiseSuppression: false,
-        autoGainControl: false
+    // Try to find and use the built-in phone mic rather than AirPod mic.
+    // iOS defaults to AirPod mic when earbuds are connected, which gives
+    // poor room sound quality. We enumerate devices and prefer the built-in.
+    let deviceId = null;
+    try {
+      // First request with no constraints to trigger permission + get device list
+      const tempStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      tempStream.getTracks().forEach(t => t.stop());
+
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const audioInputs = devices.filter(d => d.kind === 'audioinput');
+
+      // Look for built-in mic — label usually contains "built-in" or "iPhone"
+      // or is the first device (index 0 is typically the built-in on iOS)
+      const builtIn = audioInputs.find(d =>
+        d.label.toLowerCase().includes('built-in') ||
+        d.label.toLowerCase().includes('iphone microphone') ||
+        d.label.toLowerCase().includes('bottom microphone')
+      );
+
+      if (builtIn) {
+        deviceId = builtIn.deviceId;
+        document.getElementById('routeVal').textContent = 'Phone mic selected ✓';
+      } else if (audioInputs.length > 0) {
+        // Fall back to first device (usually built-in on iOS)
+        deviceId = audioInputs[0].deviceId;
       }
-    });
+    } catch (_) {
+      // Device enumeration failed — fall through to default mic
+    }
+
+    const audioConstraints = {
+      echoCancellation: false,
+      noiseSuppression: false,
+      autoGainControl: false,
+      ...(deviceId ? { deviceId: { exact: deviceId } } : {})
+    };
+
+    micStream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints });
 
     audioCtx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
 
