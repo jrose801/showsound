@@ -644,8 +644,15 @@ function showError(err) {
 }
 
 function detectOutputDevice() {
-  // Heuristic — Web Audio always routes to the system default output
-  // We can't query the exact device but we can note it
+  // Show which mic track is actually active
+  if (micStream) {
+    const track = micStream.getAudioTracks()[0];
+    if (track) {
+      const label = track.label || 'Unknown mic';
+      document.getElementById('routeVal').textContent = '🎙 ' + label;
+      return;
+    }
+  }
   document.getElementById('routeVal').textContent = 'Mic → EQ → Earbuds ✓';
 }
 
