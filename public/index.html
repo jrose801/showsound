@@ -191,24 +191,7 @@
 
   .content { padding-bottom: 8px; }
 
-  /* SHOW MODE */
-  .show-mode-bar {
-    margin: 12px 12px 0; border-radius: var(--radius);
-    border: 1px solid var(--border); background: var(--panel);
-    padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  }
-  .show-mode-bar.active { border-color: var(--amber); background: var(--amber-dim); }
-  .show-mode-left { display: flex; align-items: center; gap: 10px; }
-  .show-mode-icon { font-size: 22px; }
-  .show-mode-text h4 { font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 600; margin-bottom: 2px; }
-  .show-mode-text p { font-size: 11px; color: var(--text-dim); line-height: 1.4; }
-  .show-mode-bar.active .show-mode-text h4 { color: var(--amber); }
-  .show-mode-btn {
-    flex-shrink: 0; padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 600;
-    border: 1.5px solid var(--border); background: var(--panel2); color: var(--text-dim);
-    cursor: pointer; transition: all 0.2s; font-family: 'Space Grotesk', sans-serif; white-space: nowrap;
-  }
-  .show-mode-btn.active { border-color: var(--amber); color: var(--amber); background: rgba(255,149,0,0.1); }
+
 
   /* SHOW MODE MODAL */
   .show-mode-modal {
@@ -253,13 +236,14 @@
 <!-- SHOW MODE MODAL -->
 <div class="show-mode-modal hidden" id="showModeModal">
   <div class="modal-icon">🎸</div>
-  <div class="modal-title">Show Mode</div>
+  <div class="modal-title">Show Mode On</div>
   <div class="modal-body">
-    ShowSound will try to keep your screen awake during the show.<br><br>
-    For best results, also set <strong style="color:var(--text)">Auto-Lock to Never</strong> in iPhone Settings → Display & Brightness → Auto-Lock.
+    ShowSound will keep your screen awake so audio doesn't stop during your show.<br><br>
+    <strong style="color:var(--text)">For best results:</strong> set Auto-Lock to Never in iPhone Settings → Display &amp; Brightness → Auto-Lock.<br><br>
+    <span style="color:var(--amber)">⚠️ Note: pressing the side button to manually lock your phone will still stop audio. Keep your screen on during the show.</span>
   </div>
   <button class="modal-btn" id="showModeSettingsBtn">Open Display Settings</button>
-  <button class="modal-btn-secondary" id="showModeSkipBtn">Skip — just activate</button>
+  <button class="modal-btn-secondary" id="showModeSkipBtn">Got it — let's go</button>
 </div>
 
 <!-- TOP BAR -->
@@ -382,18 +366,6 @@
       <h4>Hearing Protected</h4>
       <p>Output capped at <strong id="limitDisplay">85 dBSPL</strong>. Safe exposure: <strong id="safeTime">8 hrs</strong>. For best isolation use AirPods Pro (Transparency) or wired IEMs.</p>
     </div>
-  </div>
-
-  <!-- SHOW MODE -->
-  <div class="show-mode-bar" id="showModeBar">
-    <div class="show-mode-left">
-      <div class="show-mode-icon">🎸</div>
-      <div class="show-mode-text">
-        <h4>Show Mode</h4>
-        <p id="showModeDesc">Keeps screen awake during a live show</p>
-      </div>
-    </div>
-    <div class="show-mode-btn" id="showModeBtn">Activate</div>
   </div>
 
   <!-- POWER -->
@@ -878,86 +850,54 @@ document.getElementById('startBtn').addEventListener('click', async (e) => {
   const ok = await initAudio();
   if (ok) {
     document.getElementById('permOverlay').classList.add('hidden');
+    // Auto-activate Show Mode — always on
+    activateShowMode();
+    // Show one-time prompt about Auto-Lock and manual lock
+    if (!showModePromptShown) {
+      showShowModePrompt();
+    }
   }
   // on failure, showError() already re-enabled the button
 });
 
 // ═══════════════════════════════════════════════
-// SHOW MODE (NoSleep + settings prompt)
+// SHOW MODE — always on, auto-activates with mic
+// NoSleep trick keeps screen awake on iOS
 // ═══════════════════════════════════════════════
 let noSleepVideo = null;
-let showModeActive = false;
 let showModePromptShown = localStorage.getItem('showModePromptShown') === 'true';
 
 function createNoSleep() {
-  // Trick iOS into keeping the screen awake by playing a silent looping video
   if (noSleepVideo) return;
   noSleepVideo = document.createElement('video');
   noSleepVideo.setAttribute('playsinline', '');
   noSleepVideo.setAttribute('muted', '');
   noSleepVideo.setAttribute('loop', '');
-  noSleepVideo.style.position = 'fixed';
-  noSleepVideo.style.opacity = '0';
-  noSleepVideo.style.width = '1px';
-  noSleepVideo.style.height = '1px';
-  noSleepVideo.style.pointerEvents = 'none';
-  // Minimal valid MP4 — 1x1 transparent pixel, 1 second loop
-  noSleepVideo.src = 'data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAAAs1tZGF0AAACrgYF//+q3EXpvebZSLeWLNgg2SPu73gyNjQgLSBjb3JlIDE0OCByMjYwMSBhMGNkN2QzIC0gSC4yNjQvTVBFRy00IEFWQyBjb2RlYyAtIENvcHlsZWZ0IDIwMDMtMjAxNSAtIGh0dHA6Ly93d3cudmlkZW9sYW4ub3JnL3gyNjQuaHRtbCAtIG9wdGlvbnM6IGNhYmFjPTEgcmVmPTMgZGVibG9jaz0xOjA6MCBhbmFseXNlPTB4MzoweDExMyBtZT1oZXggc3VibWU9NyBwc3k9MSBwc3lfcmQ9MS4wMDowLjAwIG1peGVkX3JlZj0xIG1lX3JhbmdlPTE2IGNocm9tYV9tZT0xIHRyZWxsaXM9MSA4eDhkY3Q9MSBjcW09MCBkZWFkem9uZT0yMSwxMSBmYXN0X3Bzaz0xIGNocm9tYV9xcF9vZmZzZXQ9LTIgdGhyZWFkcz02IGxvb2thaGVhZF90aHJlYWRzPTEgc2xpY2VkX3RocmVhZHM9MCBucj0wIGRlY2ltYXRlPTEgaW50ZXJsYWNlZD0wIGJsdXJheV9jb21wYXQ9MCBjb25zdHJhaW5lZF9pbnRyYT0wIGJmcmFtZXM9MyBiX3B5cmFtaWQ9MiBiX2FkYXB0PTEgYl9iaWFzPTAgZGlyZWN0PTEgd2VpZ2h0Yj0xIG9wZW5fZ29wPTAgd2VpZ2h0cD0yIGtleWludD0yNTAga2V5aW50X21pbj0yNSBzY2VuZWN1dD00MCBpbnRyYV9yZWZyZXNoPTAgcmNfbG9va2FoZWFkPTQwIHJjPWNyZiBtYnRyZWU9MSBjcmY9MjMuMCBxY29tcD0wLjYwIHFwbWluPTAgcXBtYXg9NjkgcXBzdGVwPTQgaXBfcmF0aW89MS40MCBhcT0xOjEuMDAAgAAAAFZliIQL8mKAAKvMnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnIAAAAQBf4B/gH+Af4B/gH+AAAB';
+  noSleepVideo.style.cssText = 'position:fixed;opacity:0;width:1px;height:1px;pointer-events:none;';
+  // Minimal valid MP4 — 1x1 pixel silent loop
+  noSleepVideo.src = 'data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAAAs1tZGF0AAACrgYF//+q3EXpvebZSLeWLNgg2SPu73gyNjQgLSBjb3JlIDE0OCByMjYwMSBhMGNkN2QzIC0gSC4yNjQvTVBFRy00IEFWQyBjb2RlYyAtIENvcHlsZWZ0IDIwMDMtMjAxNSAtIGh0dHA6Ly93d3cudmlkZW9sYW4ub3JnL3gyNjQuaHRtbCAtIG9wdGlvbnM6IGNhYmFjPTEgcmVmPTMgZGVibG9jaz0xOjA6MCBhbmFseXNlPTB4MzoweDExMyBtZT1oZXggc3VibWU9NyBwc3k9MSBwc3lfcmQ9MS4wMDowLjAwIG1peGVkX3JlZj0xIG1lX3JhbmdlPTE2IGNocm9tYV9tZT0xIHRyZWxsaXM9MSA4eDhkY3Q9MSBjcW09MCBkZWFkem9uZT0yMSwxMSBmYXN0X3Bzaz0xIGNocm9tYV9xcF9vZmZzZXQ9LTIgdGhyZWFkcz02IGxvb2thaGVhZF90aHJlYWRzPTEgc2xpY2VkX3RocmVhZHM9MCBucj0wIGRlY2ltYXRlPTEgaW50ZXJsYWNlZD0wIGJsdXJheV9jb21wYXQ9MCBjb25zdHJhaW5lZF9pbnRyYT0wIGJmcmFtZXM9MyBiX3B5cmFtaWQ9MiBiX2FkYXB0PTEgYl9iaWFzPTAgZGlyZWN0PTEgd2VpZ2h0Yj0xIG9wZW5fZ29wPTAgd2VpZ2h0cD0yIGtleWludD0yNTAga2V5aW50X21pbj0yNSBzY2VuZWN1dD00MCBpbnRyYV9yZWZyZXNoPTAgcmNfbG9va2FoZWFkPTQwIHJjPWNyZiBtYnRyZWU9MSBjcmY9MjMuMCBxY29tcD0wLjYwIHFwbWluPTAgcXBtYXg9NjkgcXBzdGVwPTQgaXBfcmF0aW89MS40MCBhcT0xOjEuMAAAgAAAAFZliIQL8mKAAKvMnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnIAAAAQBf4B/gH+Af4B/gH+AAAB';
   document.body.appendChild(noSleepVideo);
 }
 
 function activateShowMode() {
-  showModeActive = true;
   createNoSleep();
   if (noSleepVideo) noSleepVideo.play().catch(() => {});
-
-  // Also try Wake Lock API (works on Android, ignored on iOS)
+  // Wake Lock API — works on Android, silently ignored on iOS Safari
   if ('wakeLock' in navigator) {
     navigator.wakeLock.request('screen').catch(() => {});
   }
-
-  const bar = document.getElementById('showModeBar');
-  const btn = document.getElementById('showModeBtn');
-  const desc = document.getElementById('showModeDesc');
-  bar.classList.add('active');
-  btn.classList.add('active');
-  btn.textContent = 'Active ✓';
-  desc.textContent = 'Screen will stay awake during your show';
 }
 
-function deactivateShowMode() {
-  showModeActive = false;
-  if (noSleepVideo) { noSleepVideo.pause(); }
-
-  const bar = document.getElementById('showModeBar');
-  const btn = document.getElementById('showModeBtn');
-  const desc = document.getElementById('showModeDesc');
-  bar.classList.remove('active');
-  btn.classList.remove('active');
-  btn.textContent = 'Activate';
-  desc.textContent = 'Keeps screen awake during a live show';
+function showShowModePrompt() {
+  document.getElementById('showModeModal').classList.remove('hidden');
 }
-
-document.getElementById('showModeBtn').addEventListener('click', () => {
-  if (showModeActive) {
-    deactivateShowMode();
-    return;
-  }
-  if (!showModePromptShown) {
-    document.getElementById('showModeModal').classList.remove('hidden');
-  } else {
-    activateShowMode();
-  }
-});
 
 document.getElementById('showModeSettingsBtn').addEventListener('click', () => {
   localStorage.setItem('showModePromptShown', 'true');
   showModePromptShown = true;
   document.getElementById('showModeModal').classList.add('hidden');
-  activateShowMode();
   // Deep link to iOS Display & Brightness settings
   window.location.href = 'App-Prefs:DISPLAY';
-  // Fallback after short delay if deep link didn't open
   setTimeout(() => { window.location.href = 'prefs:root=DISPLAY'; }, 300);
 });
 
@@ -965,7 +905,22 @@ document.getElementById('showModeSkipBtn').addEventListener('click', () => {
   localStorage.setItem('showModePromptShown', 'true');
   showModePromptShown = true;
   document.getElementById('showModeModal').classList.add('hidden');
-  activateShowMode();
+});
+
+// ═══════════════════════════════════════════════
+// AUTO-RESUME on app focus (e.g. returning from camera)
+// ═══════════════════════════════════════════════
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && audioCtx) {
+    // Re-activate NoSleep video (iOS may have paused it)
+    if (noSleepVideo) noSleepVideo.play().catch(() => {});
+    // Resume audio context if it was suspended
+    if (audioCtx.state === 'suspended' && isPlaying) {
+      audioCtx.resume().then(() => {
+        startMeter();
+      });
+    }
+  }
 });
 
 // ── INIT DRAWS ──
