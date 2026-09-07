@@ -1,6 +1,5 @@
-// ShowSound service worker — v3
-// Fixed: no longer serves redirected responses from cache (caused Safari PWA blank screen)
-const CACHE = 'showsound-v3';
+// ShowSound service worker — caches the app shell for offline use.
+const CACHE = 'showsound-v4';
 const ASSETS = [
   './index.html',
   './manifest.json',
@@ -23,36 +22,7 @@ self.addEventListener('activate', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
-  // Only handle GET requests
-  if (e.request.method !== 'GET') return;
-
-  // Never cache or intercept cross-origin requests (fonts, etc.)
-  const url = new URL(e.request.url);
-  if (url.origin !== self.location.origin) {
-    e.respondWith(fetch(e.request));
-    return;
-  }
-
   e.respondWith(
-    caches.match(e.request).then((cached) => {
-      if (cached) {
-        // Only return cached response if it's not a redirect
-        if (cached.redirected) {
-          return fetch(e.request);
-        }
-        return cached;
-      }
-      // Not in cache — fetch from network
-      return fetch(e.request).then((response) => {
-        // Don't cache redirects or error responses
-        if (!response || response.status !== 200 || response.redirected) {
-          return response;
-        }
-        // Cache valid same-origin responses
-        const toCache = response.clone();
-        caches.open(CACHE).then((c) => c.put(e.request, toCache));
-        return response;
-      });
-    })
+    caches.match(e.request).then((cached) => cached || fetch(e.request))
   );
 });

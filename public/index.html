@@ -178,9 +178,22 @@
   .power-hint { font-size: 12px; color: var(--text-muted); }
 
   /* AUDIO ROUTE */
-  .audio-route { margin: 12px 12px 0; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; }
-  .route-label { font-size: 12px; color: var(--text-dim); }
-  .route-val { font-size: 13px; font-weight: 600; color: var(--cyan); }
+  .audio-route { margin: 12px 12px 0; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .route-label { font-size: 12px; color: var(--text-dim); flex-shrink: 0; }
+  .route-val { font-size: 13px; font-weight: 600; color: var(--cyan); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; }
+
+  /* DIAGNOSTICS */
+  .diag-toggle-wrap { padding: 8px 20px 0; text-align: right; }
+  .diag-toggle { font-size: 11px; color: var(--cyan); cursor: pointer; user-select: none; -webkit-user-select: none; letter-spacing: 0.3px; }
+  .diag-panel { margin: 8px 12px 0; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 6px 16px; display: none; }
+  .diag-panel.show { display: block; }
+  .diag-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid rgba(42,42,64,0.6); font-size: 12px; }
+  .diag-row:last-child { border-bottom: none; }
+  .diag-key { color: var(--text-muted); flex-shrink: 0; }
+  .diag-val { font-family: 'Space Grotesk', sans-serif; font-weight: 600; color: var(--text-dim); text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .diag-val.good { color: var(--green); }
+  .diag-val.bad { color: var(--red); }
+  .diag-val.warn { color: var(--amber); }
 
   /* NAV */
   .nav-bar { position: sticky; bottom: 0; background: var(--panel); border-top: 1px solid var(--border); display: grid; grid-template-columns: repeat(4, 1fr); padding: 8px 0 max(8px, env(safe-area-inset-bottom)); }
@@ -190,29 +203,6 @@
   .nav-item span { font-size: 10px; font-weight: 500; letter-spacing: 0.3px; }
 
   .content { padding-bottom: 8px; }
-
-
-
-  /* SHOW MODE MODAL */
-  .show-mode-modal {
-    position: fixed; inset: 0; background: rgba(10,10,15,0.92);
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 16px; z-index: 300; padding: 32px; text-align: center;
-  }
-  .show-mode-modal.hidden { display: none; }
-  .modal-icon { font-size: 48px; }
-  .modal-title { font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700; }
-  .modal-body { font-size: 14px; color: var(--text-dim); line-height: 1.6; max-width: 300px; }
-  .modal-btn {
-    background: var(--amber); color: #000; border: none; border-radius: 28px;
-    padding: 14px 32px; font-size: 15px; font-weight: 700; cursor: pointer;
-    font-family: 'Space Grotesk', sans-serif; width: 100%; max-width: 280px;
-  }
-  .modal-btn-secondary {
-    background: transparent; color: var(--text-dim); border: 1px solid var(--border);
-    border-radius: 28px; padding: 12px 32px; font-size: 14px; font-weight: 500;
-    cursor: pointer; font-family: 'Space Grotesk', sans-serif; width: 100%; max-width: 280px;
-  }
 </style>
 </head>
 <body>
@@ -224,25 +214,13 @@
   <div class="perm-body">
     This app captures live sound through your mic, applies real-time EQ and a hearing-safe dB limiter, and plays it through your earbuds — like a smart hearing monitor for live shows.
   </div>
-  <button class="perm-btn" id="startBtn">Enable Mic & Start</button>
+  <button class="perm-btn" id="startBtn">Enable Mic &amp; Start</button>
   <div class="perm-note">
     You'll see a mic permission prompt. Audio is processed entirely on your device — nothing is recorded or sent anywhere.
   </div>
   <div class="perm-note" style="color:var(--amber)">
     ⚠️ Put your earbuds in before tapping Start. Keep volume at a comfortable level first.
   </div>
-</div>
-
-<!-- SHOW MODE MODAL -->
-<div class="show-mode-modal hidden" id="showModeModal">
-  <div class="modal-icon">🎸</div>
-  <div class="modal-title">Show Mode On</div>
-  <div class="modal-body">
-    ShowSound is keeping your screen awake so audio doesn't stop during your show.<br><br>
-    <strong style="color:var(--text)">Tip:</strong> Go to iPhone Settings → Display &amp; Brightness → Auto-Lock and set it to <strong style="color:var(--text)">Never</strong> for the most reliable experience.<br><br>
-    <span style="color:var(--amber)">⚠️ Pressing the side button to manually lock your phone will still stop audio. Keep your screen on during the show.</span>
-  </div>
-  <button class="modal-btn" id="showModeGotItBtn">Got it</button>
 </div>
 
 <!-- TOP BAR -->
@@ -278,8 +256,19 @@
 
   <!-- AUDIO ROUTE INFO -->
   <div class="audio-route">
-    <span class="route-label">🎙 Input → 🎧 Output</span>
+    <span class="route-label">🎙 Input</span>
     <span class="route-val" id="routeVal">Waiting for mic…</span>
+  </div>
+  <div class="diag-toggle-wrap">
+    <span class="diag-toggle" id="diagToggle">▸ Diagnostics</span>
+  </div>
+  <div class="diag-panel" id="diagPanel">
+    <div class="diag-row"><span class="diag-key">Input device</span><span class="diag-val" id="diagDevice">—</span></div>
+    <div class="diag-row"><span class="diag-key">Auto gain control</span><span class="diag-val" id="diagAgc">—</span></div>
+    <div class="diag-row"><span class="diag-key">Noise suppression</span><span class="diag-val" id="diagNs">—</span></div>
+    <div class="diag-row"><span class="diag-key">Echo cancellation</span><span class="diag-val" id="diagEc">—</span></div>
+    <div class="diag-row"><span class="diag-key">Sample rate</span><span class="diag-val" id="diagRate">—</span></div>
+    <div class="diag-row"><span class="diag-key">Reported latency</span><span class="diag-val" id="diagLatency">—</span></div>
   </div>
 
   <!-- PRESETS -->
@@ -447,26 +436,13 @@ async function initAudio() {
     setStatus('Requesting mic…');
 
     // Request mic — echoCancellation OFF so we hear the raw room sound
-    // Request audio with environment-capture constraints.
-    // This signals to iOS that we want room sound, not a voice call,
-    // which may trigger built-in mic routing instead of AirPod mic.
-    let micStream_temp = null;
-    try {
-      micStream_temp = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: false,
-          noiseSuppression: false,
-          autoGainControl: false,
-          sampleRate: 44100,
-          channelCount: 1,
-          latency: 0
-        }
-      });
-    } catch (_) {
-      // Fall back to minimal constraints if above fails
-      micStream_temp = await navigator.mediaDevices.getUserMedia({ audio: true });
-    }
-    micStream = micStream_temp;
+    micStream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false
+      }
+    });
 
     audioCtx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
 
@@ -515,7 +491,7 @@ async function initAudio() {
     updateUI();
     startMeter();
     startTimer();
-    detectOutputDevice();
+    reportAudioRoute();
 
     return true;
   } catch (err) {
@@ -624,12 +600,61 @@ function showError(err) {
   if (sb) { sb.disabled = false; sb.textContent = 'Retry — Enable Mic'; }
 }
 
-function detectOutputDevice() {
-  if (micStream) {
-    const track = micStream.getAudioTracks()[0];
-    const label = track && track.label ? track.label : 'Default mic';
-    document.getElementById('routeVal').textContent = '🎙 ' + label;
+// ═══════════════════════════════════════════════
+// INPUT DIAGNOSTICS
+// Reports what iOS ACTUALLY gave us, not what we asked for.
+// ═══════════════════════════════════════════════
+function reportAudioRoute() {
+  const routeEl = document.getElementById('routeVal');
+  if (!micStream) { routeEl.textContent = 'Waiting for mic…'; return; }
+
+  const track = micStream.getAudioTracks()[0];
+  if (!track) { routeEl.textContent = 'No audio track'; return; }
+
+  // track.label is the device iOS actually granted. If AirPods are powered on
+  // anywhere nearby, this is where that shows up.
+  const label = track.label || 'Unknown device';
+  routeEl.textContent = label;
+  setDiag('diagDevice', label);
+
+  // getSettings() reports what the browser ACTUALLY applied, which can differ
+  // from the constraints requested in getUserMedia. A missing field means the
+  // browser is not telling us, which is NOT the same as it being off.
+  const s = (typeof track.getSettings === 'function') ? track.getSettings() : {};
+  setDiagBool('diagAgc', s.autoGainControl);
+  setDiagBool('diagNs',  s.noiseSuppression);
+  setDiagBool('diagEc',  s.echoCancellation);
+
+  const rate = s.sampleRate || (audioCtx ? audioCtx.sampleRate : null);
+  setDiag('diagRate', rate ? (rate / 1000).toFixed(1) + ' kHz' : 'not reported');
+
+  // baseLatency/outputLatency give a real number where supported. Safari
+  // support is partial, so a missing value is unknown, not zero.
+  let latMs = null;
+  if (audioCtx) {
+    const base = (typeof audioCtx.baseLatency === 'number') ? audioCtx.baseLatency : 0;
+    const out  = (typeof audioCtx.outputLatency === 'number') ? audioCtx.outputLatency : 0;
+    if (base || out) latMs = (base + out) * 1000;
   }
+  setDiag('diagLatency', latMs !== null ? latMs.toFixed(1) + ' ms' : 'not reported');
+}
+
+function setDiag(id, txt) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = txt;
+}
+
+// We want all three of these OFF for raw room sound.
+function setDiagBool(id, actual) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (typeof actual !== 'boolean') {
+    el.textContent = 'not reported';
+    el.className = 'diag-val warn';
+    return;
+  }
+  el.textContent = actual ? 'ON' : 'OFF';
+  el.className = 'diag-val ' + (actual === false ? 'good' : 'bad');
 }
 
 // ═══════════════════════════════════════════════
@@ -848,6 +873,11 @@ document.getElementById('gateToggle').addEventListener('click', function() {
   this.classList.toggle('on');
 });
 
+document.getElementById('diagToggle').addEventListener('click', function() {
+  const open = document.getElementById('diagPanel').classList.toggle('show');
+  this.textContent = (open ? '▾ ' : '▸ ') + 'Diagnostics';
+});
+
 document.getElementById('powerBtn').addEventListener('click', () => {
   if (!audioCtx) return;
   if (isPlaying) pauseAudio(); else resumeAudio();
@@ -864,68 +894,8 @@ document.getElementById('startBtn').addEventListener('click', async (e) => {
   const ok = await initAudio();
   if (ok) {
     document.getElementById('permOverlay').classList.add('hidden');
-    // Auto-activate Show Mode — always on
-    activateShowMode();
-    // Show one-time prompt about Auto-Lock and manual lock
-    if (!showModePromptShown) {
-      showShowModePrompt();
-    }
   }
   // on failure, showError() already re-enabled the button
-});
-
-// ═══════════════════════════════════════════════
-// SHOW MODE — always on, auto-activates with mic
-// NoSleep trick keeps screen awake on iOS
-// ═══════════════════════════════════════════════
-let noSleepVideo = null;
-let showModePromptShown = localStorage.getItem('showModePromptShown') === 'true';
-
-function createNoSleep() {
-  if (noSleepVideo) return;
-  noSleepVideo = document.createElement('video');
-  noSleepVideo.setAttribute('playsinline', '');
-  noSleepVideo.setAttribute('muted', '');
-  noSleepVideo.setAttribute('loop', '');
-  noSleepVideo.style.cssText = 'position:fixed;opacity:0;width:1px;height:1px;pointer-events:none;';
-  // Minimal valid MP4 — 1x1 pixel silent loop
-  noSleepVideo.src = 'data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAAAs1tZGF0AAACrgYF//+q3EXpvebZSLeWLNgg2SPu73gyNjQgLSBjb3JlIDE0OCByMjYwMSBhMGNkN2QzIC0gSC4yNjQvTVBFRy00IEFWQyBjb2RlYyAtIENvcHlsZWZ0IDIwMDMtMjAxNSAtIGh0dHA6Ly93d3cudmlkZW9sYW4ub3JnL3gyNjQuaHRtbCAtIG9wdGlvbnM6IGNhYmFjPTEgcmVmPTMgZGVibG9jaz0xOjA6MCBhbmFseXNlPTB4MzoweDExMyBtZT1oZXggc3VibWU9NyBwc3k9MSBwc3lfcmQ9MS4wMDowLjAwIG1peGVkX3JlZj0xIG1lX3JhbmdlPTE2IGNocm9tYV9tZT0xIHRyZWxsaXM9MSA4eDhkY3Q9MSBjcW09MCBkZWFkem9uZT0yMSwxMSBmYXN0X3Bzaz0xIGNocm9tYV9xcF9vZmZzZXQ9LTIgdGhyZWFkcz02IGxvb2thaGVhZF90aHJlYWRzPTEgc2xpY2VkX3RocmVhZHM9MCBucj0wIGRlY2ltYXRlPTEgaW50ZXJsYWNlZD0wIGJsdXJheV9jb21wYXQ9MCBjb25zdHJhaW5lZF9pbnRyYT0wIGJmcmFtZXM9MyBiX3B5cmFtaWQ9MiBiX2FkYXB0PTEgYl9iaWFzPTAgZGlyZWN0PTEgd2VpZ2h0Yj0xIG9wZW5fZ29wPTAgd2VpZ2h0cD0yIGtleWludD0yNTAga2V5aW50X21pbj0yNSBzY2VuZWN1dD00MCBpbnRyYV9yZWZyZXNoPTAgcmNfbG9va2FoZWFkPTQwIHJjPWNyZiBtYnRyZWU9MSBjcmY9MjMuMCBxY29tcD0wLjYwIHFwbWluPTAgcXBtYXg9NjkgcXBzdGVwPTQgaXBfcmF0aW89MS40MCBhcT0xOjEuMAAAgAAAAFZliIQL8mKAAKvMnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnIAAAAQBf4B/gH+Af4B/gH+AAAB';
-  document.body.appendChild(noSleepVideo);
-}
-
-function activateShowMode() {
-  createNoSleep();
-  if (noSleepVideo) noSleepVideo.play().catch(() => {});
-  // Wake Lock API — works on Android, silently ignored on iOS Safari
-  if ('wakeLock' in navigator) {
-    navigator.wakeLock.request('screen').catch(() => {});
-  }
-}
-
-function showShowModePrompt() {
-  document.getElementById('showModeModal').classList.remove('hidden');
-}
-
-document.getElementById('showModeGotItBtn').addEventListener('click', () => {
-  localStorage.setItem('showModePromptShown', 'true');
-  showModePromptShown = true;
-  document.getElementById('showModeModal').classList.add('hidden');
-});
-
-// ═══════════════════════════════════════════════
-// AUTO-RESUME on app focus (e.g. returning from camera)
-// ═══════════════════════════════════════════════
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && audioCtx) {
-    // Re-activate NoSleep video (iOS may have paused it)
-    if (noSleepVideo) noSleepVideo.play().catch(() => {});
-    // Resume audio context if it was suspended
-    if (audioCtx.state === 'suspended' && isPlaying) {
-      audioCtx.resume().then(() => {
-        startMeter();
-      });
-    }
-  }
 });
 
 // ── INIT DRAWS ──
