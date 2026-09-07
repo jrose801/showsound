@@ -267,6 +267,8 @@
     <div class="diag-row"><span class="diag-key">Auto gain control</span><span class="diag-val" id="diagAgc">—</span></div>
     <div class="diag-row"><span class="diag-key">Noise suppression</span><span class="diag-val" id="diagNs">—</span></div>
     <div class="diag-row"><span class="diag-key">Echo cancellation</span><span class="diag-val" id="diagEc">—</span></div>
+    <div class="diag-row"><span class="diag-key">Room level</span><span class="diag-val" id="diagRoom">—</span></div>
+    <div class="diag-row"><span class="diag-key">Auto gain</span><span class="diag-val" id="diagAgcGain">—</span></div>
     <div class="diag-row"><span class="diag-key">Sample rate</span><span class="diag-val" id="diagRate">—</span></div>
     <div class="diag-row"><span class="diag-key">Reported latency</span><span class="diag-val" id="diagLatency">—</span></div>
   </div>
@@ -296,6 +298,28 @@
     <div class="eq-grid" id="eqGrid"></div>
     <div class="eq-curve-wrap">
       <canvas id="eqCurveCanvas"></canvas>
+    </div>
+  </div>
+
+  <!-- AUTO LEVEL -->
+  <div class="section-label">
+    <h3>Auto Level</h3>
+    <span class="hint" id="agcGainReadout">+0.0 dB</span>
+  </div>
+  <div class="control-card" style="margin: 0 12px;">
+    <div class="toggle-row" style="margin-bottom: 16px;">
+      <div class="toggle-label">Hold a steady level as the room changes</div>
+      <div class="toggle on" id="agcToggle"></div>
+    </div>
+    <div class="control-card-label">Target <span class="sub" id="agcTargetLabel">-16 dBFS</span></div>
+    <div class="dial-track" style="position:relative; margin-bottom: 18px;">
+      <div class="dial-fill" id="agcTargetFill" style="width:58%"></div>
+      <input type="range" class="dial-slider" id="agcTargetSlider" min="-30" max="-6" value="-16" step="1">
+    </div>
+    <div class="control-card-label">Max boost <span class="sub" id="agcMaxLabel">+30 dB</span></div>
+    <div class="dial-track" style="position:relative;">
+      <div class="dial-fill" id="agcMaxFill" style="width:67%"></div>
+      <input type="range" class="dial-slider" id="agcMaxSlider" min="0" max="45" value="30" step="1">
     </div>
   </div>
 
@@ -399,6 +423,20 @@ let compressorNode = null;   // hard limiter
 let analyserNode = null;
 let filters = [];            // 5 BiquadFilterNodes
 let monoToStereoNode = null; // ChannelMergerNode — duplicates mono mic input to both ears
+let agcGainNode = null;      // Auto-level gain stage (sits before user volume + limiter)
+let agcAnalyser = null;      // Taps the signal BEFORE agcGainNode (feed-forward, can't self-oscillate)
+let agcCurrentDb = 0;        // Smoothed AGC gain, in dB
+let agcInputDb = -Infinity;  // Last measured room level, for the diagnostics panel
+let agcLastTime = 0;         // Timestamp of previous AGC tick, for real dt
+const agcBuf = new Float32Array(1024);
+
+// AGC tuning constants
+const AGC_SILENCE_FLOOR_DB = -55;  // Below this we HOLD gain instead of boosting silence
+const AGC_ATTACK_TAU  = 0.08;      // Gain comes DOWN fast — this is the safety direction
+const AGC_RELEASE_TAU = 2.5;       // Gain goes UP slow — this is what stops audible pumping
+const AGC_MIN_DB = -12;            // AGC may also cut, so a loud room doesn't slam the limiter
+
+function dbToLin(db) { return Math.pow(10, db / 20); }
 let isPlaying = false;
 let animFrame = null;
 let timerInterval = null;
@@ -477,6 +515,18 @@ async function initAudio() {
       return f;
     });
 
+    // AGC: analyser taps the post-EQ signal, gain node applies the correction.
+    // The analyser sits BEFORE the gain stage on purpose — measuring our own
+    // output would create a feedback loop that hunts and oscillates.
+    agcAnalyser = audioCtx.createAnalyser();
+    agcAnalyser.fftSize = 1024;
+    agcAnalyser.smoothingTimeConstant = 0.5;
+
+    agcGainNode = audioCtx.createGain();
+    agcGainNode.gain.value = 1;
+    agcCurrentDb = 0;
+    agcLastTime = 0;
+
     // Master gain (volume)
     gainNode = audioCtx.createGain();
     gainNode.gain.value = parseFloat(document.getElementById('volSlider').value) / 100;
@@ -490,12 +540,16 @@ async function initAudio() {
     analyserNode.fftSize = 1024;
     analyserNode.smoothingTimeConstant = 0.8;
 
-    // Chain: source → monoToStereo → filter[0] → filter[1] → ... → gain → compressor → analyser → destination
+    // Chain: source → monoToStereo → filters → agcAnalyser → agcGain → volume → limiter → analyser → destination
+    // The limiter stays LAST so it remains the absolute ceiling; the AGC can
+    // never boost past it.
     monoToStereoNode.connect(filters[0]);
     for (let i = 0; i < filters.length - 1; i++) {
       filters[i].connect(filters[i + 1]);
     }
-    filters[filters.length - 1].connect(gainNode);
+    filters[filters.length - 1].connect(agcAnalyser);
+    agcAnalyser.connect(agcGainNode);
+    agcGainNode.connect(gainNode);
     gainNode.connect(compressorNode);
     compressorNode.connect(analyserNode);
     analyserNode.connect(audioCtx.destination);
@@ -556,6 +610,8 @@ function teardown() {
   audioCtx = null; micStream = null; sourceNode = null;
   gainNode = null; compressorNode = null; analyserNode = null; filters = [];
   monoToStereoNode = null;
+  agcGainNode = null; agcAnalyser = null;
+  agcCurrentDb = 0; agcInputDb = -Infinity; agcLastTime = 0;
   isPlaying = false;
   cancelAnimationFrame(animFrame);
   stopTimer();
@@ -679,13 +735,83 @@ const dataArrayF = new Float32Array(1024);
 
 function startMeter() {
   cancelAnimationFrame(animFrame);
-  function loop() {
+  agcLastTime = 0;
+  function loop(now) {
     if (!analyserNode) return;
+    updateAgc(now || performance.now());
     drawWaveform();
     updateDbMeter();
     animFrame = requestAnimationFrame(loop);
   }
-  loop();
+  loop(performance.now());
+}
+
+// ═══════════════════════════════════════════════
+// AUTO LEVEL (AGC)
+// Feed-forward: measure the room, compute the gain we want, glide to it.
+// ═══════════════════════════════════════════════
+function updateAgc(now) {
+  if (!agcGainNode || !agcAnalyser || !audioCtx) return;
+
+  // Real elapsed time, clamped so a backgrounded tab doesn't jump the gain
+  const dt = agcLastTime ? Math.min((now - agcLastTime) / 1000, 0.1) : 0.016;
+  agcLastTime = now;
+
+  const enabled = document.getElementById('agcToggle').classList.contains('on');
+
+  if (!enabled) {
+    // Glide back to unity rather than snapping, which would click
+    agcCurrentDb += (0 - agcCurrentDb) * (1 - Math.exp(-dt / 0.3));
+    agcGainNode.gain.setTargetAtTime(dbToLin(agcCurrentDb), audioCtx.currentTime, 0.02);
+    updateAgcReadout(false);
+    return;
+  }
+
+  // Measure the post-EQ room level
+  agcAnalyser.getFloatTimeDomainData(agcBuf);
+  let sum = 0;
+  for (let i = 0; i < agcBuf.length; i++) sum += agcBuf[i] * agcBuf[i];
+  const rms = Math.sqrt(sum / agcBuf.length);
+  agcInputDb = rms > 0 ? 20 * Math.log10(rms) : -Infinity;
+
+  // Hold gain through silence. Without this, the AGC winds all the way up
+  // during a gap between songs and then blasts when the band comes back in.
+  if (agcInputDb > AGC_SILENCE_FLOOR_DB) {
+    const targetDb   = parseFloat(document.getElementById('agcTargetSlider').value);
+    const maxBoostDb = parseFloat(document.getElementById('agcMaxSlider').value);
+
+    let desiredDb = targetDb - agcInputDb;
+    desiredDb = Math.max(AGC_MIN_DB, Math.min(desiredDb, maxBoostDb));
+
+    // Asymmetric glide: fast when reducing gain, slow when raising it.
+    const tau = (desiredDb < agcCurrentDb) ? AGC_ATTACK_TAU : AGC_RELEASE_TAU;
+    agcCurrentDb += (desiredDb - agcCurrentDb) * (1 - Math.exp(-dt / tau));
+  }
+
+  agcGainNode.gain.setTargetAtTime(dbToLin(agcCurrentDb), audioCtx.currentTime, 0.02);
+  updateAgcReadout(true, agcInputDb <= AGC_SILENCE_FLOOR_DB);
+
+  // Live diagnostics (only when the panel is actually open)
+  const dp = document.getElementById('diagPanel');
+  if (dp && dp.classList.contains('show')) {
+    setDiag('diagRoom', agcInputDb > -Infinity ? agcInputDb.toFixed(1) + ' dBFS' : 'silent');
+    setDiag('diagAgcGain', (agcCurrentDb >= 0 ? '+' : '') + agcCurrentDb.toFixed(1) + ' dB');
+  }
+}
+
+function updateAgcReadout(enabled, holding) {
+  const el = document.getElementById('agcGainReadout');
+  if (!el) return;
+  if (!enabled) { el.textContent = 'off'; el.style.color = 'var(--text-muted)'; return; }
+  if (holding)  { el.textContent = 'holding';  el.style.color = 'var(--text-muted)'; return; }
+
+  const g = agcCurrentDb;
+  el.textContent = (g >= 0 ? '+' : '') + g.toFixed(1) + ' dB';
+
+  // Amber once we're near the boost ceiling: the room is quieter than the
+  // target and the AGC has nothing left to give.
+  const maxBoostDb = parseFloat(document.getElementById('agcMaxSlider').value);
+  el.style.color = (g >= maxBoostDb - 0.5) ? 'var(--amber)' : 'var(--cyan)';
 }
 
 function getRmsDb() {
@@ -878,6 +1004,22 @@ document.getElementById('limitSlider').addEventListener('input', function() {
   document.getElementById('limitMarker').style.left = pct + '%';
   document.getElementById('limitValLabel').textContent = v + 'dB';
   updateLimiter(); updateSafeTime();
+});
+
+document.getElementById('agcToggle').addEventListener('click', function() {
+  this.classList.toggle('on');
+});
+
+document.getElementById('agcTargetSlider').addEventListener('input', function() {
+  const v = parseInt(this.value);
+  document.getElementById('agcTargetFill').style.width = ((v + 30) / 24 * 100) + '%';
+  document.getElementById('agcTargetLabel').textContent = v + ' dBFS';
+});
+
+document.getElementById('agcMaxSlider').addEventListener('input', function() {
+  const v = parseInt(this.value);
+  document.getElementById('agcMaxFill').style.width = (v / 45 * 100) + '%';
+  document.getElementById('agcMaxLabel').textContent = '+' + v + ' dB';
 });
 
 document.getElementById('limiterToggle').addEventListener('click', function() {
