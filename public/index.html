@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="ShowSound">
@@ -23,37 +23,61 @@
   }
   html, body {
     background: var(--bg); color: var(--text);
-    font-family: 'Inter', sans-serif; min-height: 100vh;
-    overflow-x: hidden; -webkit-font-smoothing: antialiased;
+    font-family: 'Inter', sans-serif;
+    height: 100%; overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior: none;
   }
 
-  /* TOP BAR */
+  /* APP SHELL — fixed header, flexible middle, fixed nav. Nothing scrolls the shell. */
+  .app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
+
   .topbar {
+    flex-shrink: 0;
     display: flex; align-items: center; justify-content: space-between;
-    padding: 16px 20px 10px; position: sticky; top: 0;
-    background: var(--bg); z-index: 100; border-bottom: 1px solid var(--border);
+    padding: max(12px, env(safe-area-inset-top)) 20px 10px;
+    background: var(--bg); border-bottom: 1px solid var(--border);
   }
-  .logo { font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+  .logo { font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
   .logo span { color: var(--cyan); }
   .status-pill {
     display: flex; align-items: center; gap: 6px;
     background: var(--panel2); border: 1px solid var(--border);
     border-radius: 20px; padding: 5px 12px; font-size: 12px; font-weight: 500;
-    color: var(--text-dim); cursor: pointer; transition: all 0.2s;
+    color: var(--text-dim); transition: all 0.2s;
   }
   .status-pill.active { border-color: var(--cyan); color: var(--cyan); background: var(--cyan-dim); }
   .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-muted); transition: all 0.2s; }
   .status-pill.active .status-dot { background: var(--cyan); box-shadow: 0 0 6px var(--cyan); animation: pulse 1.5s infinite; }
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
 
+  .tab-host { flex: 1; position: relative; min-height: 0; }
+  .tab-panel {
+    position: absolute; inset: 0;
+    display: none; flex-direction: column;
+    overflow-y: auto; -webkit-overflow-scrolling: touch;
+  }
+  .tab-panel.active { display: flex; }
+
+  .nav-bar {
+    flex-shrink: 0;
+    background: var(--panel); border-top: 1px solid var(--border);
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    padding: 8px 0 max(8px, env(safe-area-inset-bottom));
+  }
+  .nav-item { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px; cursor: pointer; color: var(--text-muted); transition: color 0.15s; }
+  .nav-item.active { color: var(--cyan); }
+  .nav-item svg { width: 22px; height: 22px; }
+  .nav-item span { font-size: 10px; font-weight: 500; letter-spacing: 0.3px; }
+
   /* PERMISSION OVERLAY */
   .permission-overlay {
     position: fixed; inset: 0; background: rgba(10,10,15,0.97);
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 20px; z-index: 200; padding: 32px; text-align: center;
+    gap: 20px; z-index: 300; padding: 32px; text-align: center;
   }
   .permission-overlay.hidden { display: none; }
-  .perm-icon { font-size: 56px; }
+  .perm-icon { font-size: 52px; }
   .perm-title { font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; }
   .perm-body { font-size: 14px; color: var(--text-dim); line-height: 1.6; max-width: 280px; }
   .perm-btn {
@@ -64,129 +88,149 @@
   }
   .perm-note { font-size: 12px; color: var(--text-muted); max-width: 260px; line-height: 1.5; }
 
-  /* ERROR BANNER */
+  /* SHOW MODE MODAL */
+  .modal-scrim {
+    position: fixed; inset: 0; background: rgba(10,10,15,0.85);
+    display: none; align-items: center; justify-content: center; z-index: 250; padding: 28px;
+  }
+  .modal-scrim.show { display: flex; }
+  .modal {
+    background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 24px; max-width: 320px; text-align: center;
+  }
+  .modal h4 { font-family: 'Space Grotesk', sans-serif; font-size: 18px; margin-bottom: 10px; }
+  .modal p { font-size: 13px; color: var(--text-dim); line-height: 1.6; margin-bottom: 18px; }
+  .modal button {
+    background: var(--cyan); color: #000; border: none; border-radius: 22px;
+    padding: 11px 28px; font-size: 14px; font-weight: 700; cursor: pointer;
+    font-family: 'Space Grotesk', sans-serif;
+  }
+
   .error-banner {
     background: rgba(255,59,48,0.15); border: 1px solid var(--red);
     margin: 10px 12px; border-radius: var(--radius-sm);
     padding: 10px 14px; font-size: 13px; color: #FF6B62; display: none;
   }
 
-  /* WAVEFORM */
-  .waveform-wrap { padding: 12px 20px 0; position: relative; }
-  #waveCanvas { width: 100%; height: 80px; border-radius: var(--radius-sm); background: var(--panel); display: block; }
-  .db-readout {
-    position: absolute; top: 20px; right: 28px;
-    font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 600;
-    color: var(--text-dim); letter-spacing: 0.5px; text-align: right;
-  }
-  .db-readout .val { font-size: 22px; font-weight: 700; color: var(--green); display: block; line-height: 1; transition: color 0.3s; }
+  /* ── LIVE TAB ── */
+  .live-wrap { display: flex; flex-direction: column; height: 100%; padding: 10px 12px 4px; gap: 10px; }
+
+  .meter-card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; position: relative; flex-shrink: 0; }
+  #waveCanvas { width: 100%; height: 64px; display: block; }
+  .db-readout { position: absolute; top: 12px; right: 16px; font-family: 'Space Grotesk', sans-serif; font-size: 10px; font-weight: 600; color: var(--text-dim); letter-spacing: 0.5px; text-align: right; }
+  .db-readout .val { font-size: 24px; font-weight: 700; color: var(--green); display: block; line-height: 1; transition: color 0.3s; }
   .db-readout .val.warn { color: var(--amber); }
   .db-readout .val.danger { color: var(--red); }
 
-  /* DB METER */
-  .db-meter-wrap { padding: 10px 20px 4px; display: flex; align-items: center; gap: 10px; }
-  .db-label { font-size: 11px; font-weight: 600; color: var(--text-muted); width: 60px; letter-spacing: 0.5px; text-transform: uppercase; }
+  .db-meter-wrap { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
   .db-track { flex: 1; height: 6px; background: var(--panel2); border-radius: 3px; overflow: hidden; position: relative; }
   .db-fill { height: 100%; border-radius: 3px; width: 0%; transition: width 0.05s linear; background: linear-gradient(90deg, var(--green) 0%, var(--green) 55%, var(--amber) 75%, var(--red) 100%); }
   .db-limit-marker { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--amber); border-radius: 1px; }
-  .limit-val { font-size: 11px; color: var(--amber); font-weight: 600; width: 34px; text-align: right; }
+  .limit-val { font-size: 11px; color: var(--amber); font-weight: 600; width: 40px; text-align: right; }
 
-  /* SECTION LABEL */
+  /* Big volume — the one thing you reach for mid-show */
+  .vol-card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px 20px; flex-shrink: 0; }
+  .vol-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; }
+  .vol-head h3 { font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 600; color: var(--text-dim); letter-spacing: 1px; text-transform: uppercase; }
+  .vol-head .num { font-family: 'Space Grotesk', sans-serif; font-size: 28px; font-weight: 700; color: var(--cyan); line-height: 1; }
+  .vol-track { height: 14px; background: var(--panel2); border-radius: 7px; position: relative; }
+  .vol-fill { height: 100%; border-radius: 7px; background: linear-gradient(90deg, rgba(0,229,255,0.5), var(--cyan)); width: 80%; }
+  input[type=range].vol-slider {
+    -webkit-appearance: none; appearance: none;
+    position: absolute; top: 50%; left: 0; width: 100%; height: 44px;
+    transform: translateY(-50%); background: transparent; outline: none; margin: 0;
+    touch-action: none;
+  }
+  input[type=range].vol-slider::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 30px; height: 30px; border-radius: 50%;
+    background: var(--cyan); border: 3px solid var(--bg); box-shadow: 0 0 12px var(--cyan-glow);
+  }
+
+  .preset-row { flex-shrink: 0; }
+  .row-label { font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 600; color: var(--text-muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
+  .preset-scroll { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+  .preset-scroll::-webkit-scrollbar { display: none; }
+  .preset-chip { flex-shrink: 0; padding: 9px 16px; border-radius: 20px; font-size: 13px; font-weight: 500; background: var(--panel); border: 1px solid var(--border); color: var(--text-dim); cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+  .preset-chip.active { background: var(--cyan-dim); border-color: var(--cyan); color: var(--cyan); }
+  .preset-chip:active { transform: scale(0.96); }
+
+  .power-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; min-height: 96px; }
+  .power-btn { width: 68px; height: 68px; border-radius: 50%; border: 2.5px solid var(--border); background: var(--panel); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; }
+  .power-btn.active { border-color: var(--cyan); background: var(--cyan-dim); box-shadow: 0 0 24px var(--cyan-glow), inset 0 0 16px rgba(0,229,255,0.1); }
+  .power-hint { font-size: 12px; color: var(--text-muted); }
+
+  /* ── SHARED CARDS (Presets / History / Settings) ── */
   .section-label { padding: 16px 20px 8px; display: flex; align-items: center; justify-content: space-between; }
   .section-label h3 { font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 600; color: var(--text-dim); letter-spacing: 1px; text-transform: uppercase; }
   .section-label .hint { font-size: 11px; color: var(--text-muted); }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin: 0 12px 10px; }
+  .card-title { font-size: 11px; font-weight: 600; color: var(--text-muted); letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
+  .card-title .sub { font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--text-dim); }
+  .card-desc { font-size: 12px; color: var(--text-dim); line-height: 1.5; margin-top: 8px; }
 
-  /* EQ */
-  .eq-panel { padding: 0 20px 4px; background: var(--panel); margin: 0 12px; border-radius: var(--radius); border: 1px solid var(--border); }
-  .eq-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; padding: 10px 0 4px; }
-  .eq-band { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 4px; border-right: 1px solid var(--border); }
-  .eq-band:last-child { border-right: none; }
-  .eq-band-val { font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 700; color: var(--cyan); min-height: 18px; line-height: 1; }
-  .eq-slider-wrap { height: 120px; display: flex; align-items: center; justify-content: center; position: relative; }
-  .eq-slider-wrap::before { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: var(--border); transform: translateX(-50%); }
-  input[type=range].eq-slider {
-    -webkit-appearance: none; appearance: none;
-    writing-mode: vertical-lr; direction: rtl;
-    width: 36px; height: 110px; background: transparent; cursor: pointer; outline: none;
-  }
-  input[type=range].eq-slider::-webkit-slider-runnable-track { width: 4px; background: var(--panel2); border-radius: 2px; }
-  input[type=range].eq-slider::-webkit-slider-thumb {
-    -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%;
-    background: var(--cyan); box-shadow: 0 0 8px var(--cyan-glow);
-    border: 2px solid var(--bg); cursor: grab; margin-left: -9px; transition: transform 0.1s;
-  }
-  input[type=range].eq-slider:active::-webkit-slider-thumb { transform: scale(1.2); cursor: grabbing; }
-  .eq-freq { font-size: 11px; font-weight: 600; color: var(--text-muted); text-align: center; line-height: 1.2; }
-  .eq-freq span { display: block; font-size: 9px; font-weight: 400; opacity: 0.6; }
-  .eq-curve-wrap { padding: 4px 0 12px; border-top: 1px solid var(--border); }
-  #eqCurveCanvas { width: 100%; height: 48px; display: block; }
-
-  /* MASTER */
-  .master-panel { margin: 12px 12px 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .control-card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
-  .control-card-label { font-size: 11px; font-weight: 600; color: var(--text-muted); letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
-  .control-card-label .sub { font-weight: 400; text-transform: none; letter-spacing: 0; }
-  .dial-track { flex: 1; height: 4px; background: var(--panel2); border-radius: 2px; position: relative; }
+  .dial-track { height: 4px; background: var(--panel2); border-radius: 2px; position: relative; }
   .dial-fill { height: 100%; border-radius: 2px; background: var(--cyan); }
   .dial-fill.amber { background: var(--amber); }
   input[type=range].dial-slider {
     -webkit-appearance: none; appearance: none;
-    position: absolute; top: 50%; left: 0; right: 0; width: 100%;
-    height: 20px; transform: translateY(-50%); background: transparent; cursor: pointer; outline: none; margin: 0;
+    position: absolute; top: 50%; left: 0; width: 100%; height: 36px;
+    transform: translateY(-50%); background: transparent; outline: none; margin: 0;
+    touch-action: none;
   }
   input[type=range].dial-slider::-webkit-slider-thumb {
-    -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%;
+    -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%;
     background: var(--cyan); border: 2px solid var(--bg); box-shadow: 0 0 6px var(--cyan-glow);
   }
 
-  /* TOGGLES */
-  .toggle-row { display: flex; align-items: center; justify-content: space-between; margin-top: 4px; }
-  .toggle-label { font-size: 13px; color: var(--text-dim); }
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+  .toggle-label { font-size: 14px; color: var(--text); }
   .toggle { width: 44px; height: 26px; background: var(--panel2); border-radius: 13px; position: relative; cursor: pointer; border: 1px solid var(--border); transition: background 0.2s; flex-shrink: 0; }
   .toggle.on { background: var(--cyan); border-color: var(--cyan); }
   .toggle.on.amber-toggle { background: var(--amber); border-color: var(--amber); }
   .toggle::after { content: ''; position: absolute; width: 20px; height: 20px; border-radius: 50%; background: white; top: 2px; left: 2px; transition: left 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.4); }
   .toggle.on::after { left: 20px; }
 
-  /* PRESETS */
-  .presets-wrap { padding: 0 12px; margin-top: 0; }
-  .preset-scroll { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
-  .preset-scroll::-webkit-scrollbar { display: none; }
-  .preset-chip { flex-shrink: 0; padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 500; background: var(--panel); border: 1px solid var(--border); color: var(--text-dim); cursor: pointer; transition: all 0.15s; white-space: nowrap; }
-  .preset-chip.active { background: var(--cyan-dim); border-color: var(--cyan); color: var(--cyan); }
-  .preset-chip:active { transform: scale(0.96); }
+  /* Progressive disclosure — details only appear once the feature is on */
+  .reveal { max-height: 0; overflow: hidden; opacity: 0; transition: max-height 0.25s ease, opacity 0.2s ease, margin 0.25s ease; }
+  .reveal.open { max-height: 340px; opacity: 1; margin-top: 18px; }
 
-  /* HEARING TIMER */
-  .hearing-timer { margin: 12px 12px 0; background: var(--amber-dim); border: 1px solid rgba(255,149,0,0.3); border-radius: var(--radius); padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; }
-  .hearing-timer-left { display: flex; align-items: center; gap: 10px; }
-  .hearing-timer h5 { font-size: 12px; font-weight: 600; color: var(--amber); text-transform: uppercase; letter-spacing: 0.5px; }
-  .hearing-timer p { font-size: 12px; color: var(--text-dim); }
-  .timer-val { font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700; color: var(--amber); }
+  .adv-toggle { font-size: 11px; color: var(--cyan); cursor: pointer; user-select: none; -webkit-user-select: none; margin-top: 16px; display: inline-block; }
 
-  /* PROTECT BAR */
-  .protect-bar { margin: 12px 12px 0; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; display: flex; align-items: center; gap: 14px; }
-  .protect-icon { width: 40px; height: 40px; border-radius: 50%; background: var(--cyan-dim); border: 1.5px solid var(--cyan); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
-  .protect-text h4 { font-family: 'Space Grotesk', sans-serif; font-size: 14px; font-weight: 600; margin-bottom: 2px; }
-  .protect-text p { font-size: 12px; color: var(--text-dim); line-height: 1.4; }
-  .protect-text p strong { color: var(--green); }
+  /* ── EQ (Presets tab) ── */
+  .eq-panel { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); margin: 0 12px 10px; padding: 0 14px; }
+  .eq-grid { display: grid; grid-template-columns: repeat(5, 1fr); padding: 12px 0 4px; }
+  .eq-band { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 2px; border-right: 1px solid var(--border); }
+  .eq-band:last-child { border-right: none; }
+  .eq-band-val { font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 700; color: var(--cyan); min-height: 18px; line-height: 1; }
+  .eq-slider-wrap { height: 132px; display: flex; align-items: center; justify-content: center; position: relative; }
+  .eq-slider-wrap::before { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: var(--border); transform: translateX(-50%); }
+  input[type=range].eq-slider {
+    -webkit-appearance: none; appearance: none;
+    writing-mode: vertical-lr; direction: rtl;
+    width: 40px; height: 124px; background: transparent; outline: none;
+    touch-action: none; /* stops the slider from dragging the page */
+  }
+  input[type=range].eq-slider::-webkit-slider-runnable-track { width: 4px; background: var(--panel2); border-radius: 2px; }
+  input[type=range].eq-slider::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 24px; height: 24px; border-radius: 50%;
+    background: var(--cyan); box-shadow: 0 0 8px var(--cyan-glow);
+    border: 2px solid var(--bg); margin-left: -10px;
+  }
+  .eq-freq { font-size: 11px; font-weight: 600; color: var(--text-muted); text-align: center; line-height: 1.2; }
+  .eq-freq span { display: block; font-size: 9px; font-weight: 400; opacity: 0.6; }
+  .eq-curve-wrap { padding: 4px 0 12px; border-top: 1px solid var(--border); }
+  #eqCurveCanvas { width: 100%; height: 44px; display: block; }
 
-  /* POWER */
-  .power-wrap { display: flex; flex-direction: column; align-items: center; padding: 20px 20px 12px; gap: 8px; }
-  .power-btn { width: 72px; height: 72px; border-radius: 50%; border: 2.5px solid var(--border); background: var(--panel); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; }
-  .power-btn.active { border-color: var(--cyan); background: var(--cyan-dim); box-shadow: 0 0 24px var(--cyan-glow), inset 0 0 16px rgba(0,229,255,0.1); }
-  .power-btn.active svg { filter: drop-shadow(0 0 6px var(--cyan)); }
-  .power-hint { font-size: 12px; color: var(--text-muted); }
+  /* ── HISTORY ── */
+  .dose-card { background: var(--amber-dim); border: 1px solid rgba(255,149,0,0.3); border-radius: var(--radius); padding: 18px; margin: 0 12px 10px; text-align: center; }
+  .dose-timer { font-family: 'Space Grotesk', sans-serif; font-size: 42px; font-weight: 700; color: var(--amber); line-height: 1; margin-bottom: 6px; }
+  .dose-label { font-size: 12px; color: var(--text-dim); }
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0 12px 10px; }
+  .stat { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; text-align: center; }
+  .stat .v { font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700; color: var(--text); }
+  .stat .k { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
 
-  /* AUDIO ROUTE */
-  .audio-route { margin: 12px 12px 0; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-  .route-label { font-size: 12px; color: var(--text-dim); flex-shrink: 0; }
-  .route-val { font-size: 13px; font-weight: 600; color: var(--cyan); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; }
-
-  /* DIAGNOSTICS */
-  .diag-toggle-wrap { padding: 8px 20px 0; text-align: right; }
-  .diag-toggle { font-size: 11px; color: var(--cyan); cursor: pointer; user-select: none; -webkit-user-select: none; letter-spacing: 0.3px; }
-  .diag-panel { margin: 8px 12px 0; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 6px 16px; display: none; }
-  .diag-panel.show { display: block; }
+  /* ── DIAGNOSTICS ── */
   .diag-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid rgba(42,42,64,0.6); font-size: 12px; }
   .diag-row:last-child { border-bottom: none; }
   .diag-key { color: var(--text-muted); flex-shrink: 0; }
@@ -195,14 +239,7 @@
   .diag-val.bad { color: var(--red); }
   .diag-val.warn { color: var(--amber); }
 
-  /* NAV */
-  .nav-bar { position: sticky; bottom: 0; background: var(--panel); border-top: 1px solid var(--border); display: grid; grid-template-columns: repeat(4, 1fr); padding: 8px 0 max(8px, env(safe-area-inset-bottom)); }
-  .nav-item { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px; cursor: pointer; color: var(--text-muted); transition: color 0.15s; }
-  .nav-item.active { color: var(--cyan); }
-  .nav-item svg { width: 22px; height: 22px; }
-  .nav-item span { font-size: 10px; font-weight: 500; letter-spacing: 0.3px; }
-
-  .content { padding-bottom: 8px; }
+  .pad-bottom { height: 16px; flex-shrink: 0; }
 </style>
 </head>
 <body>
@@ -212,237 +249,248 @@
   <div class="perm-icon">🎧</div>
   <div class="perm-title">ShowSound</div>
   <div class="perm-body">
-    This app captures live sound through your mic, applies real-time EQ and a hearing-safe dB limiter, and plays it through your earbuds — like a smart hearing monitor for live shows.
+    Captures live sound through your mic, shapes it with EQ and a hearing-safe limiter, and plays it through your earbuds.
   </div>
   <button class="perm-btn" id="startBtn">Enable Mic &amp; Start</button>
   <div class="perm-note">
-    You'll see a mic permission prompt. Audio is processed entirely on your device — nothing is recorded or sent anywhere.
+    Audio is processed entirely on your device. Nothing is recorded or sent anywhere.
   </div>
   <div class="perm-note" style="color:var(--amber)">
-    ⚠️ Put your earbuds in before tapping Start. Keep volume at a comfortable level first.
+    ⚠️ Put your earbuds in before tapping Start. Keep volume low to begin.
   </div>
 </div>
 
-<!-- TOP BAR -->
-<div class="topbar">
-  <div class="logo">Show<span>Sound</span></div>
-  <div class="status-pill" id="statusPill">
-    <div class="status-dot" id="statusDot"></div>
-    <span id="statusText">Ready</span>
+<!-- SHOW MODE MODAL -->
+<div class="modal-scrim" id="showModeModal">
+  <div class="modal">
+    <h4>Show Mode is on</h4>
+    <p>Your screen will stay awake while audio is running so the app keeps processing. Locking the phone with the side button still stops audio.</p>
+    <button id="showModeOk">Got it</button>
   </div>
 </div>
 
-<div class="content">
-  <div class="error-banner" id="errorBanner"></div>
+<div class="app">
 
-  <!-- WAVEFORM -->
-  <div class="waveform-wrap">
-    <canvas id="waveCanvas"></canvas>
-    <div class="db-readout">
-      <span class="val" id="dbVal">—</span>
-      dBSPL
+  <!-- HEADER (fixed) -->
+  <div class="topbar">
+    <div class="logo">Show<span>Sound</span></div>
+    <div class="status-pill" id="statusPill">
+      <div class="status-dot" id="statusDot"></div>
+      <span id="statusText">Ready</span>
     </div>
   </div>
 
-  <!-- DB METER -->
-  <div class="db-meter-wrap">
-    <div class="db-label">Level</div>
-    <div class="db-track">
-      <div class="db-fill" id="dbFill"></div>
-      <div class="db-limit-marker" id="limitMarker" style="left:70%"></div>
-    </div>
-    <div class="limit-val" id="limitValLabel">85dB</div>
-  </div>
+  <div class="tab-host">
 
-  <!-- AUDIO ROUTE INFO -->
-  <div class="audio-route">
-    <span class="route-label">🎙 Input</span>
-    <span class="route-val" id="routeVal">Waiting for mic…</span>
-  </div>
-  <div class="diag-toggle-wrap">
-    <span class="diag-toggle" id="diagToggle">▸ Diagnostics</span>
-  </div>
-  <div class="diag-panel" id="diagPanel">
-    <div class="diag-row"><span class="diag-key">Input device</span><span class="diag-val" id="diagDevice">—</span></div>
-    <div class="diag-row"><span class="diag-key">Auto gain control</span><span class="diag-val" id="diagAgc">—</span></div>
-    <div class="diag-row"><span class="diag-key">Noise suppression</span><span class="diag-val" id="diagNs">—</span></div>
-    <div class="diag-row"><span class="diag-key">Echo cancellation</span><span class="diag-val" id="diagEc">—</span></div>
-    <div class="diag-row"><span class="diag-key">Room level</span><span class="diag-val" id="diagRoom">—</span></div>
-    <div class="diag-row"><span class="diag-key">Auto gain</span><span class="diag-val" id="diagAgcGain">—</span></div>
-    <div class="diag-row"><span class="diag-key">Sample rate</span><span class="diag-val" id="diagRate">—</span></div>
-    <div class="diag-row"><span class="diag-key">Reported latency</span><span class="diag-val" id="diagLatency">—</span></div>
-  </div>
+    <!-- ════════ LIVE ════════ -->
+    <div class="tab-panel active" id="tab-live">
+      <div class="live-wrap">
+        <div class="error-banner" id="errorBanner" style="margin:0 0 4px;"></div>
 
-  <!-- PRESETS -->
-  <div class="section-label">
-    <h3>Venue Preset</h3>
-    <span class="hint">tap to load</span>
-  </div>
-  <div class="presets-wrap">
-    <div class="preset-scroll">
-      <div class="preset-chip active" data-preset="flat">Flat</div>
-      <div class="preset-chip" data-preset="arena">Arena</div>
-      <div class="preset-chip" data-preset="club">Small Club</div>
-      <div class="preset-chip" data-preset="outdoor">Outdoor Stage</div>
-      <div class="preset-chip" data-preset="opening">Opening Act</div>
-      <div class="preset-chip" data-preset="vocal">Vocal Boost</div>
-    </div>
-  </div>
+        <div class="meter-card">
+          <canvas id="waveCanvas"></canvas>
+          <div class="db-readout"><span class="val" id="dbVal">—</span>dBSPL</div>
+          <div class="db-meter-wrap">
+            <div class="db-track">
+              <div class="db-fill" id="dbFill"></div>
+              <div class="db-limit-marker" id="limitMarker" style="left:70%"></div>
+            </div>
+            <div class="limit-val" id="limitValLabel">85dB</div>
+          </div>
+        </div>
 
-  <!-- EQ -->
-  <div class="section-label">
-    <h3>Equalizer</h3>
-    <span class="hint">±12 dB per band</span>
-  </div>
-  <div class="eq-panel">
-    <div class="eq-grid" id="eqGrid"></div>
-    <div class="eq-curve-wrap">
-      <canvas id="eqCurveCanvas"></canvas>
-    </div>
-  </div>
+        <div class="vol-card">
+          <div class="vol-head">
+            <h3>Volume</h3>
+            <span class="num" id="volLabel">80</span>
+          </div>
+          <div class="vol-track">
+            <div class="vol-fill" id="volFill"></div>
+            <input type="range" class="vol-slider" id="volSlider" min="0" max="100" value="80">
+          </div>
+        </div>
 
-  <!-- AUTO LEVEL -->
-  <div class="section-label">
-    <h3>Auto Level</h3>
-    <span class="hint" id="agcGainReadout">+0.0 dB</span>
-  </div>
-  <div class="control-card" style="margin: 0 12px;">
-    <div class="toggle-row" style="margin-bottom: 16px;">
-      <div class="toggle-label">Hold a steady level as the room changes</div>
-      <div class="toggle on" id="agcToggle"></div>
-    </div>
-    <div class="control-card-label">Target <span class="sub" id="agcTargetLabel">-16 dBFS</span></div>
-    <div class="dial-track" style="position:relative; margin-bottom: 18px;">
-      <div class="dial-fill" id="agcTargetFill" style="width:58%"></div>
-      <input type="range" class="dial-slider" id="agcTargetSlider" min="-30" max="-6" value="-16" step="1">
-    </div>
-    <div class="control-card-label">Max boost <span class="sub" id="agcMaxLabel">+30 dB</span></div>
-    <div class="dial-track" style="position:relative;">
-      <div class="dial-fill" id="agcMaxFill" style="width:67%"></div>
-      <input type="range" class="dial-slider" id="agcMaxSlider" min="0" max="45" value="30" step="1">
-    </div>
-  </div>
+        <div class="preset-row">
+          <div class="row-label">Venue</div>
+          <div class="preset-scroll" id="presetScrollLive"></div>
+        </div>
 
-  <!-- MASTER -->
-  <div class="section-label"><h3>Master</h3></div>
-  <div class="master-panel">
-    <div class="control-card">
-      <div class="control-card-label">Volume <span class="sub" id="volLabel">80%</span></div>
-      <div class="dial-track" style="position:relative;">
-        <div class="dial-fill" id="volFill" style="width:80%"></div>
-        <input type="range" class="dial-slider" id="volSlider" min="0" max="100" value="80">
+        <div class="power-wrap">
+          <div class="power-btn" id="powerBtn">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#8888AA" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2v6M6.3 5.3a8 8 0 1 0 11.4 0"/>
+            </svg>
+          </div>
+          <div class="power-hint" id="powerHint">Mic not started</div>
+        </div>
       </div>
     </div>
-    <div class="control-card">
-      <div class="control-card-label">dB Limit <span class="sub" id="limitLabel">85</span></div>
-      <div class="dial-track" style="position:relative;">
-        <div class="dial-fill amber" id="limitFill" style="width:50%"></div>
-        <input type="range" class="dial-slider" id="limitSlider" min="60" max="105" value="85">
+
+    <!-- ════════ PRESETS / EQ ════════ -->
+    <div class="tab-panel" id="tab-presets">
+      <div class="section-label"><h3>Venue Preset</h3><span class="hint">tap to load</span></div>
+      <div style="padding: 0 12px 4px;">
+        <div class="preset-scroll" id="presetScrollTab"></div>
       </div>
-    </div>
-  </div>
-
-  <div class="master-panel" style="margin-top:10px;">
-    <div class="control-card">
-      <div class="control-card-label">Noise Gate</div>
-      <div class="toggle-row">
-        <div class="toggle-label">Cut silence</div>
-        <div class="toggle on" id="gateToggle"></div>
+      <div class="section-label"><h3>Equalizer</h3><span class="hint">±12 dB</span></div>
+      <div class="eq-panel">
+        <div class="eq-grid" id="eqGrid"></div>
+        <div class="eq-curve-wrap"><canvas id="eqCurveCanvas"></canvas></div>
       </div>
-    </div>
-    <div class="control-card">
-      <div class="control-card-label">Hard Limiter</div>
-      <div class="toggle-row">
-        <div class="toggle-label">Protect ears</div>
-        <div class="toggle on amber-toggle" id="limiterToggle"></div>
+      <div class="card">
+        <div class="card-title">Tip</div>
+        <div class="card-desc">Set your EQ once for the room, then leave it. Changes apply live and stay put when you switch back to the Live tab.</div>
       </div>
+      <div class="pad-bottom"></div>
     </div>
-  </div>
 
-  <!-- HEARING TIMER -->
-  <div class="hearing-timer">
-    <div class="hearing-timer-left">
-      <span>👂</span>
-      <div>
-        <h5>Hearing Dose</h5>
-        <p id="safeTimeText">Safe at this level</p>
+    <!-- ════════ HISTORY ════════ -->
+    <div class="tab-panel" id="tab-history">
+      <div class="section-label"><h3>Hearing Dose</h3></div>
+      <div class="dose-card">
+        <div class="dose-timer" id="hearingTimer">0:00</div>
+        <div class="dose-label" id="safeTimeText">Safe at this level</div>
       </div>
+      <div class="stat-grid">
+        <div class="stat"><div class="v" id="statLimit">85 dB</div><div class="k">Output cap</div></div>
+        <div class="stat"><div class="v" id="statSafe">8 hrs</div><div class="k">Safe exposure</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">How this works</div>
+        <div class="card-desc">Safe exposure follows the 3&nbsp;dB exchange rate: every 3&nbsp;dB louder halves the time you can listen safely. The timer counts how long audio has been running this session.</div>
+      </div>
+      <div class="pad-bottom"></div>
     </div>
-    <div class="timer-val" id="hearingTimer">0:00</div>
+
+    <!-- ════════ SETTINGS ════════ -->
+    <div class="tab-panel" id="tab-settings">
+
+      <div class="section-label"><h3>Loudness</h3></div>
+      <div class="card">
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">Auto Level</div>
+            <div class="card-desc" style="margin-top:4px;">Keeps a steady volume as the room gets louder or quieter, so you're not chasing the volume slider all night.</div>
+          </div>
+          <div class="toggle on" id="agcToggle"></div>
+        </div>
+
+        <div class="reveal open" id="agcReveal">
+          <div class="card-title">Loudness <span class="sub" id="agcTargetLabel">6</span></div>
+          <div class="dial-track" style="position:relative;">
+            <div class="dial-fill" id="agcTargetFill" style="width:58%"></div>
+            <input type="range" class="dial-slider" id="agcTargetSlider" min="1" max="10" value="6" step="1">
+          </div>
+          <div class="card-desc">How loud Auto Level aims for. Higher pushes harder.</div>
+
+          <span class="adv-toggle" id="advToggle">▸ Advanced</span>
+          <div class="reveal" id="advReveal">
+            <div class="card-title">Max boost <span class="sub" id="agcMaxLabel">+30 dB</span></div>
+            <div class="dial-track" style="position:relative;">
+              <div class="dial-fill" id="agcMaxFill" style="width:67%"></div>
+              <input type="range" class="dial-slider" id="agcMaxSlider" min="0" max="45" value="30" step="1">
+            </div>
+            <div class="card-desc">Ceiling on how hard Auto Level may amplify. Lower this if quiet rooms sound hissy.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-label"><h3>Hearing Protection</h3></div>
+      <div class="card">
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">Hard limiter</div>
+            <div class="card-desc" style="margin-top:4px;">Clamps sudden peaks so nothing gets through above your cap.</div>
+          </div>
+          <div class="toggle on amber-toggle" id="limiterToggle"></div>
+        </div>
+        <div class="reveal open" id="limReveal">
+          <div class="card-title">Output cap <span class="sub" id="limitLabel">85 dB</span></div>
+          <div class="dial-track" style="position:relative;">
+            <div class="dial-fill amber" id="limitFill" style="width:50%"></div>
+            <input type="range" class="dial-slider" id="limitSlider" min="60" max="105" value="85" step="1">
+          </div>
+          <div class="card-desc" id="limitDesc">Safe for about 8 hrs at this level.</div>
+        </div>
+      </div>
+
+      <div class="section-label"><h3>Show Mode</h3></div>
+      <div class="card">
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">Keep screen awake</div>
+            <div class="card-desc" style="margin-top:4px;">Stops the phone auto-locking while audio runs. Locking manually still stops audio.</div>
+          </div>
+          <div class="toggle on" id="showModeToggle"></div>
+        </div>
+      </div>
+
+      <div class="section-label"><h3>Diagnostics</h3><span class="hint" id="diagHint">live</span></div>
+      <div class="card">
+        <div class="diag-row"><span class="diag-key">Input device</span><span class="diag-val" id="diagDevice">—</span></div>
+        <div class="diag-row"><span class="diag-key">Auto gain control</span><span class="diag-val" id="diagAgc">—</span></div>
+        <div class="diag-row"><span class="diag-key">Noise suppression</span><span class="diag-val" id="diagNs">—</span></div>
+        <div class="diag-row"><span class="diag-key">Echo cancellation</span><span class="diag-val" id="diagEc">—</span></div>
+        <div class="diag-row"><span class="diag-key">Room level</span><span class="diag-val" id="diagRoom">—</span></div>
+        <div class="diag-row"><span class="diag-key">Auto gain applied</span><span class="diag-val" id="diagAgcGain">—</span></div>
+        <div class="diag-row"><span class="diag-key">Screen wake lock</span><span class="diag-val" id="diagWake">—</span></div>
+        <div class="diag-row"><span class="diag-key">Sample rate</span><span class="diag-val" id="diagRate">—</span></div>
+        <div class="diag-row"><span class="diag-key">Reported latency</span><span class="diag-val" id="diagLatency">—</span></div>
+      </div>
+      <div class="pad-bottom"></div>
+    </div>
+
   </div>
 
-  <!-- PROTECT BAR -->
-  <div class="protect-bar">
-    <div class="protect-icon">🛡️</div>
-    <div class="protect-text">
-      <h4>Hearing Protected</h4>
-      <p>Output capped at <strong id="limitDisplay">85 dBSPL</strong>. Safe exposure: <strong id="safeTime">8 hrs</strong>. For best isolation use AirPods Pro (Transparency) or wired IEMs.</p>
+  <!-- NAV (fixed) -->
+  <div class="nav-bar">
+    <div class="nav-item active" data-tab="live">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+      <span>Live</span>
+    </div>
+    <div class="nav-item" data-tab="presets">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>
+      <span>EQ</span>
+    </div>
+    <div class="nav-item" data-tab="history">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m3 15 5-5 4 4 5-8"/></svg>
+      <span>Dose</span>
+    </div>
+    <div class="nav-item" data-tab="settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      <span>Settings</span>
     </div>
   </div>
 
-  <!-- POWER -->
-  <div class="power-wrap">
-    <div class="power-btn" id="powerBtn">
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#8888AA" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M12 2v6M6.3 5.3a8 8 0 1 0 11.4 0"/>
-      </svg>
-    </div>
-    <div class="power-hint" id="powerHint">Tap to pause audio</div>
-  </div>
-</div>
-
-<!-- NAV -->
-<div class="nav-bar">
-  <div class="nav-item active">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
-    <span>Live</span>
-  </div>
-  <div class="nav-item">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
-    <span>Presets</span>
-  </div>
-  <div class="nav-item">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m3 15 5-5 4 4 5-8"/></svg>
-    <span>History</span>
-  </div>
-  <div class="nav-item">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-    <span>Settings</span>
-  </div>
 </div>
 
 <script>
 // ═══════════════════════════════════════════════
 // AUDIO ENGINE
 // ═══════════════════════════════════════════════
-let audioCtx = null;
-let micStream = null;
-let sourceNode = null;
-let gainNode = null;
-let compressorNode = null;   // hard limiter
-let analyserNode = null;
-let filters = [];            // 5 BiquadFilterNodes
-let monoToStereoNode = null; // ChannelMergerNode — duplicates mono mic input to both ears
-let agcGainNode = null;      // Auto-level gain stage (sits before user volume + limiter)
-let agcAnalyser = null;      // Taps the signal BEFORE agcGainNode (feed-forward, can't self-oscillate)
-let agcCurrentDb = 0;        // Smoothed AGC gain, in dB
-let agcInputDb = -Infinity;  // Last measured room level, for the diagnostics panel
-let agcLastTime = 0;         // Timestamp of previous AGC tick, for real dt
+let audioCtx = null, micStream = null, sourceNode = null;
+let gainNode = null, compressorNode = null, analyserNode = null;
+let filters = [], monoToStereoNode = null;
+let agcGainNode = null, agcAnalyser = null;
+let isPlaying = false, animFrame = null, timerInterval = null, elapsed = 0;
+
+// AGC state
+let agcCurrentDb = 0, agcInputDb = -Infinity, agcLastTime = 0;
 const agcBuf = new Float32Array(1024);
-
-// AGC tuning constants
-const AGC_SILENCE_FLOOR_DB = -55;  // Below this we HOLD gain instead of boosting silence
-const AGC_ATTACK_TAU  = 0.08;      // Gain comes DOWN fast — this is the safety direction
-const AGC_RELEASE_TAU = 2.5;       // Gain goes UP slow — this is what stops audible pumping
-const AGC_MIN_DB = -12;            // AGC may also cut, so a loud room doesn't slam the limiter
-
+const AGC_SILENCE_FLOOR_DB = -55;
+const AGC_ATTACK_TAU  = 0.08;   // gain DOWN fast (safety direction)
+const AGC_RELEASE_TAU = 2.5;    // gain UP slow (prevents pumping)
+const AGC_MIN_DB = -12;
 function dbToLin(db) { return Math.pow(10, db / 20); }
-let isPlaying = false;
-let animFrame = null;
-let timerInterval = null;
-let elapsed = 0;
 
-// EQ band definitions: [freq Hz, type]
+// Loudness 1–10 maps onto target dBFS -30 … -6
+function loudnessToTargetDb(n) { return -30 + ((n - 1) / 9) * 24; }
+
+// Show Mode state
+let wakeLock = null;
+let wakeLockStatus = 'off';
+let wasPlayingBeforeHide = false;
+
 const BANDS = [
   { freq: 80,    type: 'lowshelf',  label: '80Hz',  name: 'Sub' },
   { freq: 250,   type: 'peaking',   label: '250Hz', name: 'Low' },
@@ -453,100 +501,66 @@ const BANDS = [
 const bandVals = [0, 0, 0, 0, 0];
 
 const PRESETS = {
-  flat:    [ 0,  0,  0,  0,  0],
-  arena:   [ 3,  1, -2, -3, -2],
-  club:    [ 4,  2,  1, -4, -5],
-  outdoor: [ 5,  3,  2, -1,  0],
-  opening: [ 6,  4,  3, -3, -4],
-  vocal:   [-2, -1,  5,  3,  0],
+  flat:    { label: 'Flat',          v: [ 0,  0,  0,  0,  0] },
+  arena:   { label: 'Arena',         v: [ 3,  1, -2, -3, -2] },
+  club:    { label: 'Small Club',    v: [ 4,  2,  1, -4, -5] },
+  outdoor: { label: 'Outdoor Stage', v: [ 5,  3,  2, -1,  0] },
+  opening: { label: 'Opening Act',   v: [ 6,  4,  3, -3, -4] },
+  vocal:   { label: 'Vocal Boost',   v: [-2, -1,  5,  3,  0] },
 };
 
-// ── INIT AUDIO GRAPH ──
+// ── INIT AUDIO ──
 async function initAudio() {
   try {
-    // Pre-flight: is the mic API even available here?
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      throw new DOMException(
-        'Microphone API unavailable. This usually means the page is running inside a preview frame or over plain http. Open this file in a real browser tab over https:// (or localhost) to grant mic access.',
-        'NotSupportedError'
-      );
+      throw new DOMException('Microphone API unavailable. Open over https:// in Safari or Chrome.', 'NotSupportedError');
     }
-
     setStatus('Requesting mic…');
 
-    // Request mic — echoCancellation OFF so we hear the raw room sound
     micStream = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        echoCancellation: false,
-        noiseSuppression: false,
-        autoGainControl: false
-      }
+      audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
     });
 
     audioCtx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
+    if (audioCtx.state === 'suspended') await audioCtx.resume();
 
-    // iOS/Safari: context often starts suspended until resumed inside a gesture
-    if (audioCtx.state === 'suspended') {
-      await audioCtx.resume();
-    }
-
-    // Source
     sourceNode = audioCtx.createMediaStreamSource(micStream);
 
-    // The iPhone's built-in mic is a single mono capsule — the captured track
-    // has exactly one channel. Left to the browser's default up-mix rules,
-    // a mono source feeding a stereo destination can land in the left
-    // channel only instead of being duplicated to both ears (this is what
-    // was happening: audio only in the left earbud). Force it explicitly:
-    // split the single channel out, then merge it into both L and R.
+    // iPhone mic is a single mono capsule. Left to default up-mix rules it can
+    // land in the left channel only, so split and merge it into both ears.
     const splitter = audioCtx.createChannelSplitter(1);
     monoToStereoNode = audioCtx.createChannelMerger(2);
     sourceNode.connect(splitter);
-    splitter.connect(monoToStereoNode, 0, 0); // mono → left
-    splitter.connect(monoToStereoNode, 0, 1); // mono → right
+    splitter.connect(monoToStereoNode, 0, 0);
+    splitter.connect(monoToStereoNode, 0, 1);
 
-    // 5-band EQ filters chained
     filters = BANDS.map((b, i) => {
       const f = audioCtx.createBiquadFilter();
-      f.type = b.type;
-      f.frequency.value = b.freq;
-      f.Q.value = 1.4;
-      f.gain.value = bandVals[i];
+      f.type = b.type; f.frequency.value = b.freq; f.Q.value = 1.4; f.gain.value = bandVals[i];
       return f;
     });
 
-    // AGC: analyser taps the post-EQ signal, gain node applies the correction.
-    // The analyser sits BEFORE the gain stage on purpose — measuring our own
-    // output would create a feedback loop that hunts and oscillates.
+    // AGC analyser taps BEFORE the AGC gain — feed-forward, so it can't oscillate
     agcAnalyser = audioCtx.createAnalyser();
     agcAnalyser.fftSize = 1024;
     agcAnalyser.smoothingTimeConstant = 0.5;
-
     agcGainNode = audioCtx.createGain();
     agcGainNode.gain.value = 1;
-    agcCurrentDb = 0;
-    agcLastTime = 0;
+    agcCurrentDb = 0; agcLastTime = 0;
 
-    // Master gain (volume)
     gainNode = audioCtx.createGain();
     gainNode.gain.value = parseFloat(document.getElementById('volSlider').value) / 100;
 
-    // DynamicsCompressor as a hard limiter
     compressorNode = audioCtx.createDynamicsCompressor();
     updateLimiter();
 
-    // Analyser for waveform + dB metering
     analyserNode = audioCtx.createAnalyser();
     analyserNode.fftSize = 1024;
     analyserNode.smoothingTimeConstant = 0.8;
 
-    // Chain: source → monoToStereo → filters → agcAnalyser → agcGain → volume → limiter → analyser → destination
-    // The limiter stays LAST so it remains the absolute ceiling; the AGC can
-    // never boost past it.
+    // source → stereo → EQ → agcTap → agcGain → volume → limiter → analyser → out
     monoToStereoNode.connect(filters[0]);
-    for (let i = 0; i < filters.length - 1; i++) {
-      filters[i].connect(filters[i + 1]);
-    }
+    for (let i = 0; i < filters.length - 1; i++) filters[i].connect(filters[i + 1]);
     filters[filters.length - 1].connect(agcAnalyser);
     agcAnalyser.connect(agcGainNode);
     agcGainNode.connect(gainNode);
@@ -555,11 +569,16 @@ async function initAudio() {
     analyserNode.connect(audioCtx.destination);
 
     isPlaying = true;
-    updateUI();
-    startMeter();
-    startTimer();
-    reportAudioRoute();
+    updateUI(); startMeter(); startTimer(); reportAudioRoute();
 
+    // Show Mode: hold the screen awake, and tell the user once
+    if (document.getElementById('showModeToggle').classList.contains('on')) {
+      await enableWakeLock();
+      if (!localStorage.getItem('ss_showmode_seen')) {
+        document.getElementById('showModeModal').classList.add('show');
+        try { localStorage.setItem('ss_showmode_seen', '1'); } catch (e) {}
+      }
+    }
     return true;
   } catch (err) {
     showError(err);
@@ -572,8 +591,7 @@ function updateLimiter() {
   const limitDb = parseInt(document.getElementById('limitSlider').value);
   const enabled = document.getElementById('limiterToggle').classList.contains('on');
   if (enabled) {
-    // Aggressive limiter: threshold at limit, ratio 20:1, fast attack
-    compressorNode.threshold.value = limitDb - 90; // offset since gain is 0dBFS
+    compressorNode.threshold.value = limitDb - 90;
     compressorNode.knee.value = 0;
     compressorNode.ratio.value = 20;
     compressorNode.attack.value = 0.001;
@@ -584,39 +602,49 @@ function updateLimiter() {
   }
 }
 
-function setFilterGain(index, db) {
-  if (filters[index]) {
-    filters[index].gain.value = db;
+function setFilterGain(i, db) { if (filters[i]) filters[i].gain.value = db; bandVals[i] = db; }
+
+// ═══════════════════════════════════════════════
+// SHOW MODE / WAKE LOCK
+// ═══════════════════════════════════════════════
+async function enableWakeLock() {
+  if (!('wakeLock' in navigator)) { wakeLockStatus = 'unsupported'; setDiag('diagWake', 'unsupported'); return; }
+  try {
+    wakeLock = await navigator.wakeLock.request('screen');
+    wakeLockStatus = 'active';
+    wakeLock.addEventListener('release', () => { wakeLock = null; wakeLockStatus = 'released'; setDiag('diagWake', 'released'); });
+    setDiag('diagWake', 'active');
+  } catch (e) {
+    wakeLockStatus = 'denied';
+    setDiag('diagWake', 'denied');
   }
-  bandVals[index] = db;
+}
+async function releaseWakeLock() {
+  try { if (wakeLock) await wakeLock.release(); } catch (e) {}
+  wakeLock = null; wakeLockStatus = 'off'; setDiag('diagWake', 'off');
 }
 
+// iOS drops the wake lock and suspends audio when you leave the app.
+// Re-acquire both on return.
+document.addEventListener('visibilitychange', async () => {
+  if (document.visibilityState === 'hidden') {
+    wasPlayingBeforeHide = isPlaying;
+    return;
+  }
+  if (document.getElementById('showModeToggle').classList.contains('on') && !wakeLock && audioCtx) {
+    enableWakeLock();
+  }
+  if (audioCtx && wasPlayingBeforeHide) {
+    try {
+      await audioCtx.resume();
+      isPlaying = true; updateUI(); startMeter(); startTimer();
+    } catch (e) {}
+  }
+});
+
 // ── PAUSE / RESUME ──
-function pauseAudio() {
-  if (audioCtx) audioCtx.suspend();
-  isPlaying = false;
-  updateUI();
-  stopTimer();
-}
-function resumeAudio() {
-  if (audioCtx) audioCtx.resume();
-  isPlaying = true;
-  updateUI();
-  startTimer();
-}
-function teardown() {
-  if (micStream) micStream.getTracks().forEach(t => t.stop());
-  if (audioCtx) audioCtx.close();
-  audioCtx = null; micStream = null; sourceNode = null;
-  gainNode = null; compressorNode = null; analyserNode = null; filters = [];
-  monoToStereoNode = null;
-  agcGainNode = null; agcAnalyser = null;
-  agcCurrentDb = 0; agcInputDb = -Infinity; agcLastTime = 0;
-  isPlaying = false;
-  cancelAnimationFrame(animFrame);
-  stopTimer();
-  updateUI();
-}
+function pauseAudio() { if (audioCtx) audioCtx.suspend(); isPlaying = false; updateUI(); stopTimer(); }
+function resumeAudio() { if (audioCtx) audioCtx.resume(); isPlaying = true; updateUI(); startTimer(); }
 
 // ── UI STATE ──
 function updateUI() {
@@ -637,59 +665,37 @@ function updateUI() {
     hint.textContent = audioCtx ? 'Tap to resume' : 'Mic not started';
   }
 }
-
-function setStatus(txt) {
-  document.getElementById('statusText').textContent = txt;
-}
+function setStatus(t) { document.getElementById('statusText').textContent = t; }
 
 function showError(err) {
   const b = document.getElementById('errorBanner');
   let msg;
   switch (err.name) {
-    case 'NotAllowedError':
-    case 'SecurityError':
-      msg = '🚫 Mic permission was blocked. If you\'re in the in-app preview, that\'s expected — download the file and open it in Chrome or Safari, then allow mic access.';
-      break;
+    case 'NotAllowedError': case 'SecurityError':
+      msg = '🚫 Mic permission blocked. Allow mic access and retry.'; break;
     case 'NotFoundError':
-      msg = '🎙 No microphone detected. Connect earbuds with a mic or enable your device mic, then retry.';
-      break;
+      msg = '🎙 No microphone detected.'; break;
     case 'NotSupportedError':
-      msg = '⚠️ ' + err.message;
-      break;
+      msg = '⚠️ ' + err.message; break;
     case 'NotReadableError':
-      msg = '🎙 The mic is in use by another app. Close other audio apps and retry.';
-      break;
+      msg = '🎙 Mic is in use by another app.'; break;
     default:
       msg = 'Error (' + (err.name || 'unknown') + '): ' + err.message;
   }
-  b.textContent = msg;
-  b.style.display = 'block';
-  setStatus('Error');
-  // Re-enable the start button so the user can retry
+  b.textContent = msg; b.style.display = 'block'; setStatus('Error');
   const sb = document.getElementById('startBtn');
   if (sb) { sb.disabled = false; sb.textContent = 'Retry — Enable Mic'; }
 }
 
 // ═══════════════════════════════════════════════
-// INPUT DIAGNOSTICS
-// Reports what iOS ACTUALLY gave us, not what we asked for.
+// DIAGNOSTICS
 // ═══════════════════════════════════════════════
 function reportAudioRoute() {
-  const routeEl = document.getElementById('routeVal');
-  if (!micStream) { routeEl.textContent = 'Waiting for mic…'; return; }
-
+  if (!micStream) return;
   const track = micStream.getAudioTracks()[0];
-  if (!track) { routeEl.textContent = 'No audio track'; return; }
+  if (!track) return;
+  setDiag('diagDevice', track.label || 'Unknown device');
 
-  // track.label is the device iOS actually granted. If AirPods are powered on
-  // anywhere nearby, this is where that shows up.
-  const label = track.label || 'Unknown device';
-  routeEl.textContent = label;
-  setDiag('diagDevice', label);
-
-  // getSettings() reports what the browser ACTUALLY applied, which can differ
-  // from the constraints requested in getUserMedia. A missing field means the
-  // browser is not telling us, which is NOT the same as it being off.
   const s = (typeof track.getSettings === 'function') ? track.getSettings() : {};
   setDiagBool('diagAgc', s.autoGainControl);
   setDiagBool('diagNs',  s.noiseSuppression);
@@ -698,8 +704,6 @@ function reportAudioRoute() {
   const rate = s.sampleRate || (audioCtx ? audioCtx.sampleRate : null);
   setDiag('diagRate', rate ? (rate / 1000).toFixed(1) + ' kHz' : 'not reported');
 
-  // baseLatency/outputLatency give a real number where supported. Safari
-  // support is partial, so a missing value is unknown, not zero.
   let latMs = null;
   if (audioCtx) {
     const base = (typeof audioCtx.baseLatency === 'number') ? audioCtx.baseLatency : 0;
@@ -707,28 +711,18 @@ function reportAudioRoute() {
     if (base || out) latMs = (base + out) * 1000;
   }
   setDiag('diagLatency', latMs !== null ? latMs.toFixed(1) + ' ms' : 'not reported');
+  setDiag('diagWake', wakeLockStatus);
 }
-
-function setDiag(id, txt) {
-  const el = document.getElementById(id);
-  if (el) el.textContent = txt;
-}
-
-// We want all three of these OFF for raw room sound.
+function setDiag(id, txt) { const el = document.getElementById(id); if (el) el.textContent = txt; }
 function setDiagBool(id, actual) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  if (typeof actual !== 'boolean') {
-    el.textContent = 'not reported';
-    el.className = 'diag-val warn';
-    return;
-  }
+  const el = document.getElementById(id); if (!el) return;
+  if (typeof actual !== 'boolean') { el.textContent = 'not reported'; el.className = 'diag-val warn'; return; }
   el.textContent = actual ? 'ON' : 'OFF';
   el.className = 'diag-val ' + (actual === false ? 'good' : 'bad');
 }
 
 // ═══════════════════════════════════════════════
-// METERING & WAVEFORM
+// METERING + AGC LOOP
 // ═══════════════════════════════════════════════
 const dataArray8 = new Uint8Array(1024);
 const dataArrayF = new Float32Array(1024);
@@ -739,79 +733,44 @@ function startMeter() {
   function loop(now) {
     if (!analyserNode) return;
     updateAgc(now || performance.now());
-    drawWaveform();
-    updateDbMeter();
+    if (currentTab === 'live') { drawWaveform(); updateDbMeter(); }
     animFrame = requestAnimationFrame(loop);
   }
   loop(performance.now());
 }
 
-// ═══════════════════════════════════════════════
-// AUTO LEVEL (AGC)
-// Feed-forward: measure the room, compute the gain we want, glide to it.
-// ═══════════════════════════════════════════════
 function updateAgc(now) {
   if (!agcGainNode || !agcAnalyser || !audioCtx) return;
-
-  // Real elapsed time, clamped so a backgrounded tab doesn't jump the gain
   const dt = agcLastTime ? Math.min((now - agcLastTime) / 1000, 0.1) : 0.016;
   agcLastTime = now;
 
   const enabled = document.getElementById('agcToggle').classList.contains('on');
-
   if (!enabled) {
-    // Glide back to unity rather than snapping, which would click
     agcCurrentDb += (0 - agcCurrentDb) * (1 - Math.exp(-dt / 0.3));
     agcGainNode.gain.setTargetAtTime(dbToLin(agcCurrentDb), audioCtx.currentTime, 0.02);
-    updateAgcReadout(false);
     return;
   }
 
-  // Measure the post-EQ room level
   agcAnalyser.getFloatTimeDomainData(agcBuf);
   let sum = 0;
   for (let i = 0; i < agcBuf.length; i++) sum += agcBuf[i] * agcBuf[i];
   const rms = Math.sqrt(sum / agcBuf.length);
   agcInputDb = rms > 0 ? 20 * Math.log10(rms) : -Infinity;
 
-  // Hold gain through silence. Without this, the AGC winds all the way up
-  // during a gap between songs and then blasts when the band comes back in.
+  // Hold through silence so we don't wind up on room hiss between songs
   if (agcInputDb > AGC_SILENCE_FLOOR_DB) {
-    const targetDb   = parseFloat(document.getElementById('agcTargetSlider').value);
+    const targetDb   = loudnessToTargetDb(parseFloat(document.getElementById('agcTargetSlider').value));
     const maxBoostDb = parseFloat(document.getElementById('agcMaxSlider').value);
-
-    let desiredDb = targetDb - agcInputDb;
-    desiredDb = Math.max(AGC_MIN_DB, Math.min(desiredDb, maxBoostDb));
-
-    // Asymmetric glide: fast when reducing gain, slow when raising it.
+    let desiredDb = Math.max(AGC_MIN_DB, Math.min(targetDb - agcInputDb, maxBoostDb));
     const tau = (desiredDb < agcCurrentDb) ? AGC_ATTACK_TAU : AGC_RELEASE_TAU;
     agcCurrentDb += (desiredDb - agcCurrentDb) * (1 - Math.exp(-dt / tau));
   }
-
   agcGainNode.gain.setTargetAtTime(dbToLin(agcCurrentDb), audioCtx.currentTime, 0.02);
-  updateAgcReadout(true, agcInputDb <= AGC_SILENCE_FLOOR_DB);
 
-  // Live diagnostics (only when the panel is actually open)
-  const dp = document.getElementById('diagPanel');
-  if (dp && dp.classList.contains('show')) {
+  if (currentTab === 'settings') {
     setDiag('diagRoom', agcInputDb > -Infinity ? agcInputDb.toFixed(1) + ' dBFS' : 'silent');
     setDiag('diagAgcGain', (agcCurrentDb >= 0 ? '+' : '') + agcCurrentDb.toFixed(1) + ' dB');
   }
-}
-
-function updateAgcReadout(enabled, holding) {
-  const el = document.getElementById('agcGainReadout');
-  if (!el) return;
-  if (!enabled) { el.textContent = 'off'; el.style.color = 'var(--text-muted)'; return; }
-  if (holding)  { el.textContent = 'holding';  el.style.color = 'var(--text-muted)'; return; }
-
-  const g = agcCurrentDb;
-  el.textContent = (g >= 0 ? '+' : '') + g.toFixed(1) + ' dB';
-
-  // Amber once we're near the boost ceiling: the room is quieter than the
-  // target and the AGC has nothing left to give.
-  const maxBoostDb = parseFloat(document.getElementById('agcMaxSlider').value);
-  el.style.color = (g >= maxBoostDb - 0.5) ? 'var(--amber)' : 'var(--cyan)';
 }
 
 function getRmsDb() {
@@ -822,98 +781,70 @@ function getRmsDb() {
   const rms = Math.sqrt(sum / dataArrayF.length);
   return rms > 0 ? 20 * Math.log10(rms) : -Infinity;
 }
-
-function dbFsToSpl(dbfs) {
-  // Rough calibration: 0 dBFS ≈ 94 dBSPL (typical handheld mic at 1Pa)
-  // Offset accounts for gain staging
-  return dbfs + 94;
-}
+function dbFsToSpl(dbfs) { return dbfs + 94; }
 
 function updateDbMeter() {
-  const dbfs = getRmsDb();
-  const spl = dbFsToSpl(dbfs);
+  const spl = dbFsToSpl(getRmsDb());
   const limitVal = parseInt(document.getElementById('limitSlider').value);
   const valEl = document.getElementById('dbVal');
-
   if (spl > -Infinity && spl > 30) {
-    const clamped = Math.min(spl, limitVal);
-    const pct = ((clamped - 50) / (110 - 50)) * 100;
+    const pct = ((Math.min(spl, limitVal) - 50) / 60) * 100;
     document.getElementById('dbFill').style.width = Math.max(0, pct) + '%';
-    const rounded = Math.round(spl);
-    valEl.textContent = rounded;
-    valEl.className = 'val' + (rounded >= limitVal ? ' danger' : rounded >= limitVal - 5 ? ' warn' : '');
+    const r = Math.round(spl);
+    valEl.textContent = r;
+    valEl.className = 'val' + (r >= limitVal ? ' danger' : r >= limitVal - 5 ? ' warn' : '');
   } else {
     document.getElementById('dbFill').style.width = '0%';
-    valEl.textContent = '—';
-    valEl.className = 'val';
+    valEl.textContent = '—'; valEl.className = 'val';
   }
 }
 
 function drawWaveform() {
   const canvas = document.getElementById('waveCanvas');
-  const W = canvas.offsetWidth; const H = 80;
+  const W = canvas.offsetWidth, H = 64;
+  if (!W) return;
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, W, H);
-
   if (!analyserNode || !isPlaying) {
-    ctx.strokeStyle = 'rgba(42,42,64,0.8)';
-    ctx.lineWidth = 1.5;
-    ctx.setLineDash([4, 8]);
-    ctx.beginPath(); ctx.moveTo(0, H/2); ctx.lineTo(W, H/2); ctx.stroke();
-    ctx.setLineDash([]);
+    ctx.strokeStyle = 'rgba(42,42,64,0.8)'; ctx.lineWidth = 1.5; ctx.setLineDash([4, 8]);
+    ctx.beginPath(); ctx.moveTo(0, H/2); ctx.lineTo(W, H/2); ctx.stroke(); ctx.setLineDash([]);
     return;
   }
-
   analyserNode.getByteTimeDomainData(dataArray8);
-  const sliceWidth = W / dataArray8.length;
-
+  const slice = W / dataArray8.length;
   ctx.beginPath();
   for (let i = 0; i < dataArray8.length; i++) {
-    const v = dataArray8[i] / 128.0;
-    const y = (v * H) / 2;
-    if (i === 0) ctx.moveTo(0, y);
-    else ctx.lineTo(i * sliceWidth, y);
+    const y = ((dataArray8[i] / 128.0) * H) / 2;
+    if (i === 0) ctx.moveTo(0, y); else ctx.lineTo(i * slice, y);
   }
-
-  const grad = ctx.createLinearGradient(0, 0, W, 0);
-  grad.addColorStop(0, 'rgba(0,229,255,0.3)');
-  grad.addColorStop(0.5, '#00E5FF');
-  grad.addColorStop(1, 'rgba(0,229,255,0.3)');
-  ctx.strokeStyle = grad;
-  ctx.lineWidth = 2;
-  ctx.shadowColor = '#00E5FF';
-  ctx.shadowBlur = 6;
-  ctx.stroke();
-  ctx.shadowBlur = 0;
+  const g = ctx.createLinearGradient(0, 0, W, 0);
+  g.addColorStop(0, 'rgba(0,229,255,0.3)'); g.addColorStop(0.5, '#00E5FF'); g.addColorStop(1, 'rgba(0,229,255,0.3)');
+  ctx.strokeStyle = g; ctx.lineWidth = 2;
+  ctx.shadowColor = '#00E5FF'; ctx.shadowBlur = 6; ctx.stroke(); ctx.shadowBlur = 0;
 }
 
 // ═══════════════════════════════════════════════
-// TIMER & HEARING DOSE
+// TIMER + DOSE
 // ═══════════════════════════════════════════════
 function startTimer() {
   clearInterval(timerInterval);
   timerInterval = setInterval(() => {
     elapsed++;
     const m = Math.floor(elapsed / 60), s = elapsed % 60;
-    document.getElementById('hearingTimer').textContent = `${m}:${s.toString().padStart(2,'0')}`;
+    document.getElementById('hearingTimer').textContent = m + ':' + String(s).padStart(2, '0');
   }, 1000);
 }
-function stopTimer() {
-  clearInterval(timerInterval);
-  elapsed = 0;
-  document.getElementById('hearingTimer').textContent = '0:00';
-}
+function stopTimer() { clearInterval(timerInterval); }
 
 function updateSafeTime() {
   const limitVal = parseInt(document.getElementById('limitSlider').value);
   const safeHours = 8 / Math.pow(2, (limitVal - 85) / 3);
-  const safeStr = safeHours >= 1
-    ? safeHours.toFixed(1).replace('.0','') + ' hrs'
-    : Math.round(safeHours * 60) + ' min';
-  document.getElementById('safeTime').textContent = safeStr;
-  document.getElementById('limitDisplay').textContent = limitVal + ' dBSPL';
-  document.getElementById('safeTimeText').textContent = safeHours >= 2 ? 'Safe at this level' : '⚠️ Limit exposure time';
+  const safeStr = safeHours >= 1 ? safeHours.toFixed(1).replace('.0','') + ' hrs' : Math.round(safeHours * 60) + ' min';
+  setDiag('statSafe', safeStr);
+  setDiag('statLimit', limitVal + ' dB');
+  document.getElementById('limitDesc').textContent = 'Safe for about ' + safeStr + ' at this level.';
+  document.getElementById('safeTimeText').textContent = safeHours >= 2 ? 'Safe at this level' : '⚠️ Limit your exposure time';
 }
 
 // ═══════════════════════════════════════════════
@@ -923,17 +854,14 @@ const eqGrid = document.getElementById('eqGrid');
 BANDS.forEach((band, i) => {
   const col = document.createElement('div');
   col.className = 'eq-band';
-  col.innerHTML = `
-    <div class="eq-band-val" id="eqVal${i}">0</div>
-    <div class="eq-slider-wrap">
-      <input type="range" class="eq-slider" id="eqSlider${i}" min="-12" max="12" value="0" step="0.5">
-    </div>
-    <div class="eq-freq">${band.label}<span>${band.name}</span></div>`;
+  col.innerHTML =
+    '<div class="eq-band-val" id="eqVal' + i + '">0</div>' +
+    '<div class="eq-slider-wrap"><input type="range" class="eq-slider" id="eqSlider' + i + '" min="-12" max="12" value="0" step="0.5"></div>' +
+    '<div class="eq-freq">' + band.label + '<span>' + band.name + '</span></div>';
   eqGrid.appendChild(col);
-  col.querySelector(`#eqSlider${i}`).addEventListener('input', function() {
+  col.querySelector('#eqSlider' + i).addEventListener('input', function() {
     const v = parseFloat(this.value);
-    bandVals[i] = v;
-    document.getElementById(`eqVal${i}`).textContent = v > 0 ? `+${v}` : v;
+    document.getElementById('eqVal' + i).textContent = v > 0 ? '+' + v : v;
     setFilterGain(i, v);
     drawEqCurve();
     document.querySelectorAll('.preset-chip').forEach(c => c.classList.remove('active'));
@@ -941,97 +869,130 @@ BANDS.forEach((band, i) => {
 });
 
 function applyPreset(name) {
-  const p = PRESETS[name];
+  const p = PRESETS[name].v;
   BANDS.forEach((_, i) => {
-    bandVals[i] = p[i];
-    document.getElementById(`eqSlider${i}`).value = p[i];
-    document.getElementById(`eqVal${i}`).textContent = p[i] > 0 ? `+${p[i]}` : p[i];
+    document.getElementById('eqSlider' + i).value = p[i];
+    document.getElementById('eqVal' + i).textContent = p[i] > 0 ? '+' + p[i] : p[i];
     setFilterGain(i, p[i]);
   });
   drawEqCurve();
 }
 
-document.querySelectorAll('.preset-chip').forEach(chip => {
-  chip.addEventListener('click', () => {
-    document.querySelectorAll('.preset-chip').forEach(c => c.classList.remove('active'));
-    chip.classList.add('active');
-    applyPreset(chip.dataset.preset);
+// Preset chips are rendered into both Live and EQ tabs and stay in sync
+function buildPresetChips() {
+  ['presetScrollLive', 'presetScrollTab'].forEach(hostId => {
+    const host = document.getElementById(hostId);
+    host.innerHTML = '';
+    Object.keys(PRESETS).forEach((key, idx) => {
+      const chip = document.createElement('div');
+      chip.className = 'preset-chip' + (idx === 0 ? ' active' : '');
+      chip.textContent = PRESETS[key].label;
+      chip.dataset.preset = key;
+      chip.addEventListener('click', () => {
+        document.querySelectorAll('.preset-chip').forEach(c => {
+          c.classList.toggle('active', c.dataset.preset === key);
+        });
+        applyPreset(key);
+      });
+      host.appendChild(chip);
+    });
   });
-});
+}
+buildPresetChips();
 
 function drawEqCurve() {
   const canvas = document.getElementById('eqCurveCanvas');
-  const W = canvas.parentElement.clientWidth; const H = 48;
+  const W = canvas.parentElement.clientWidth, H = 44;
+  if (!W) return;
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, W, H);
   const midY = H / 2, scaleY = (H * 0.42) / 12;
   ctx.strokeStyle = 'rgba(42,42,64,1)'; ctx.lineWidth = 1; ctx.setLineDash([4,4]);
-  ctx.beginPath(); ctx.moveTo(0, midY); ctx.lineTo(W, midY); ctx.stroke();
-  ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(0, midY); ctx.lineTo(W, midY); ctx.stroke(); ctx.setLineDash([]);
   const pts = bandVals.map((v, i) => ({ x: (i / (bandVals.length-1)) * W, y: midY - v * scaleY }));
-  const drawPath = () => {
+  const path = () => {
     ctx.beginPath(); ctx.moveTo(0, midY);
     pts.forEach((pt, i) => {
       if (i === 0) ctx.lineTo(pt.x, pt.y);
-      else { const prev = pts[i-1], cpx = (prev.x+pt.x)/2; ctx.bezierCurveTo(cpx, prev.y, cpx, pt.y, pt.x, pt.y); }
+      else { const p = pts[i-1], cx = (p.x+pt.x)/2; ctx.bezierCurveTo(cx, p.y, cx, pt.y, pt.x, pt.y); }
     });
     ctx.lineTo(W, midY);
   };
-  drawPath();
-  const grad = ctx.createLinearGradient(0,0,0,H);
-  grad.addColorStop(0, 'rgba(0,229,255,0.25)'); grad.addColorStop(1, 'rgba(0,229,255,0.03)');
-  ctx.fillStyle = grad; ctx.fill();
-  drawPath();
-  ctx.strokeStyle = '#00E5FF'; ctx.lineWidth = 2; ctx.stroke();
+  path();
+  const g = ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0, 'rgba(0,229,255,0.25)'); g.addColorStop(1, 'rgba(0,229,255,0.03)');
+  ctx.fillStyle = g; ctx.fill();
+  path(); ctx.strokeStyle = '#00E5FF'; ctx.lineWidth = 2; ctx.stroke();
   pts.forEach(pt => { ctx.beginPath(); ctx.arc(pt.x, pt.y, 3, 0, Math.PI*2); ctx.fillStyle='#00E5FF'; ctx.fill(); });
 }
+
+// ═══════════════════════════════════════════════
+// TABS
+// ═══════════════════════════════════════════════
+let currentTab = 'live';
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    const tab = item.dataset.tab;
+    currentTab = tab;
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n === item));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + tab));
+    // Canvases have zero width while hidden — redraw once visible
+    requestAnimationFrame(() => { if (tab === 'live') drawWaveform(); if (tab === 'presets') drawEqCurve(); });
+  });
+});
 
 // ═══════════════════════════════════════════════
 // CONTROLS
 // ═══════════════════════════════════════════════
 document.getElementById('volSlider').addEventListener('input', function() {
   document.getElementById('volFill').style.width = this.value + '%';
-  document.getElementById('volLabel').textContent = this.value + '%';
+  document.getElementById('volLabel').textContent = this.value;
   if (gainNode) gainNode.gain.value = this.value / 100;
 });
 
 document.getElementById('limitSlider').addEventListener('input', function() {
   const v = parseInt(this.value);
-  document.getElementById('limitFill').style.width = ((v-60)/(105-60)*100) + '%';
-  document.getElementById('limitLabel').textContent = v;
-  const pct = ((v-50)/(110-50))*100;
-  document.getElementById('limitMarker').style.left = pct + '%';
+  document.getElementById('limitFill').style.width = ((v-60)/45*100) + '%';
+  document.getElementById('limitLabel').textContent = v + ' dB';
+  document.getElementById('limitMarker').style.left = ((v-50)/60*100) + '%';
   document.getElementById('limitValLabel').textContent = v + 'dB';
   updateLimiter(); updateSafeTime();
 });
 
 document.getElementById('agcToggle').addEventListener('click', function() {
   this.classList.toggle('on');
+  document.getElementById('agcReveal').classList.toggle('open', this.classList.contains('on'));
 });
-
 document.getElementById('agcTargetSlider').addEventListener('input', function() {
   const v = parseInt(this.value);
-  document.getElementById('agcTargetFill').style.width = ((v + 30) / 24 * 100) + '%';
-  document.getElementById('agcTargetLabel').textContent = v + ' dBFS';
+  document.getElementById('agcTargetFill').style.width = ((v-1)/9*100) + '%';
+  document.getElementById('agcTargetLabel').textContent = v;
 });
-
 document.getElementById('agcMaxSlider').addEventListener('input', function() {
   const v = parseInt(this.value);
-  document.getElementById('agcMaxFill').style.width = (v / 45 * 100) + '%';
+  document.getElementById('agcMaxFill').style.width = (v/45*100) + '%';
   document.getElementById('agcMaxLabel').textContent = '+' + v + ' dB';
+});
+document.getElementById('advToggle').addEventListener('click', function() {
+  const open = document.getElementById('advReveal').classList.toggle('open');
+  this.textContent = (open ? '▾ ' : '▸ ') + 'Advanced';
 });
 
 document.getElementById('limiterToggle').addEventListener('click', function() {
-  this.classList.toggle('on'); updateLimiter();
-});
-document.getElementById('gateToggle').addEventListener('click', function() {
   this.classList.toggle('on');
+  document.getElementById('limReveal').classList.toggle('open', this.classList.contains('on'));
+  updateLimiter();
 });
 
-document.getElementById('diagToggle').addEventListener('click', function() {
-  const open = document.getElementById('diagPanel').classList.toggle('show');
-  this.textContent = (open ? '▾ ' : '▸ ') + 'Diagnostics';
+document.getElementById('showModeToggle').addEventListener('click', async function() {
+  this.classList.toggle('on');
+  if (this.classList.contains('on')) { if (audioCtx) await enableWakeLock(); }
+  else await releaseWakeLock();
+});
+
+document.getElementById('showModeOk').addEventListener('click', () => {
+  document.getElementById('showModeModal').classList.remove('show');
 });
 
 document.getElementById('powerBtn').addEventListener('click', () => {
@@ -1039,32 +1000,21 @@ document.getElementById('powerBtn').addEventListener('click', () => {
   if (isPlaying) pauseAudio(); else resumeAudio();
 });
 
-// ═══════════════════════════════════════════════
-// PERMISSION OVERLAY → START
-// ═══════════════════════════════════════════════
 document.getElementById('startBtn').addEventListener('click', async (e) => {
   const sb = e.currentTarget;
-  sb.disabled = true;
-  sb.textContent = 'Starting…';
+  sb.disabled = true; sb.textContent = 'Starting…';
   document.getElementById('errorBanner').style.display = 'none';
   const ok = await initAudio();
-  if (ok) {
-    document.getElementById('permOverlay').classList.add('hidden');
-  }
-  // on failure, showError() already re-enabled the button
+  if (ok) document.getElementById('permOverlay').classList.add('hidden');
 });
 
-// ── INIT DRAWS ──
+// ── INIT ──
 setTimeout(() => { drawEqCurve(); drawWaveform(); updateSafeTime(); updateUI(); }, 150);
 window.addEventListener('resize', () => { drawEqCurve(); drawWaveform(); });
 
-// ── PWA: register service worker ──
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch(() => {});
-  });
+  window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js').catch(() => {}); });
 }
-
 </script>
 </body>
 </html>

@@ -1,5 +1,5 @@
 // ShowSound service worker — caches the app shell for offline use.
-const CACHE = 'showsound-v6';
+const CACHE = 'showsound-v7';
 const ASSETS = [
   './index.html',
   './manifest.json',
