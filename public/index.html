@@ -398,6 +398,7 @@ let gainNode = null;
 let compressorNode = null;   // hard limiter
 let analyserNode = null;
 let filters = [];            // 5 BiquadFilterNodes
+let monoToStereoNode = null; // ChannelMergerNode — duplicates mono mic input to both ears
 let isPlaying = false;
 let animFrame = null;
 let timerInterval = null;
@@ -454,6 +455,18 @@ async function initAudio() {
     // Source
     sourceNode = audioCtx.createMediaStreamSource(micStream);
 
+    // The iPhone's built-in mic is a single mono capsule — the captured track
+    // has exactly one channel. Left to the browser's default up-mix rules,
+    // a mono source feeding a stereo destination can land in the left
+    // channel only instead of being duplicated to both ears (this is what
+    // was happening: audio only in the left earbud). Force it explicitly:
+    // split the single channel out, then merge it into both L and R.
+    const splitter = audioCtx.createChannelSplitter(1);
+    monoToStereoNode = audioCtx.createChannelMerger(2);
+    sourceNode.connect(splitter);
+    splitter.connect(monoToStereoNode, 0, 0); // mono → left
+    splitter.connect(monoToStereoNode, 0, 1); // mono → right
+
     // 5-band EQ filters chained
     filters = BANDS.map((b, i) => {
       const f = audioCtx.createBiquadFilter();
@@ -477,8 +490,8 @@ async function initAudio() {
     analyserNode.fftSize = 1024;
     analyserNode.smoothingTimeConstant = 0.8;
 
-    // Chain: source → filter[0] → filter[1] → ... → gain → compressor → analyser → destination
-    sourceNode.connect(filters[0]);
+    // Chain: source → monoToStereo → filter[0] → filter[1] → ... → gain → compressor → analyser → destination
+    monoToStereoNode.connect(filters[0]);
     for (let i = 0; i < filters.length - 1; i++) {
       filters[i].connect(filters[i + 1]);
     }
@@ -542,6 +555,7 @@ function teardown() {
   if (audioCtx) audioCtx.close();
   audioCtx = null; micStream = null; sourceNode = null;
   gainNode = null; compressorNode = null; analyserNode = null; filters = [];
+  monoToStereoNode = null;
   isPlaying = false;
   cancelAnimationFrame(animFrame);
   stopTimer();
