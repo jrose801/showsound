@@ -154,8 +154,25 @@
   .preset-chip.active { background: var(--cyan-dim); border-color: var(--cyan); color: var(--cyan); }
   .preset-chip:active { transform: scale(0.96); }
 
-  .power-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; min-height: 96px; }
-  .power-btn { width: 68px; height: 68px; border-radius: 50%; border: 2.5px solid var(--border); background: var(--panel); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; }
+  /* Hold-style action buttons — big targets, no accidental taps */
+  .action-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; flex-shrink: 0; }
+  .action-btn {
+    position: relative; overflow: hidden;
+    background: var(--panel); border: 1.5px solid var(--border); border-radius: var(--radius);
+    padding: 14px 10px; text-align: center; cursor: pointer;
+    user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+    touch-action: none; transition: border-color .15s, background .15s;
+  }
+  .action-btn .lbl { font-family: 'Space Grotesk', sans-serif; font-size: 14px; font-weight: 700; letter-spacing: .4px; position: relative; z-index: 2; }
+  .action-btn .sub { font-size: 10px; color: var(--text-muted); margin-top: 3px; position: relative; z-index: 2; }
+  .action-btn .fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0%; background: var(--cyan-dim); z-index: 1; transition: width .05s linear; }
+  .action-btn.armed { border-color: var(--cyan); background: var(--cyan-dim); }
+  .action-btn.duck.armed { border-color: var(--amber); background: var(--amber-dim); }
+  .action-btn.done { border-color: var(--green); }
+  .action-btn.done .lbl { color: var(--green); }
+
+  .power-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 78px; }
+  .power-btn { width: 58px; height: 58px; border-radius: 50%; border: 2.5px solid var(--border); background: var(--panel); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; }
   .power-btn.active { border-color: var(--cyan); background: var(--cyan-dim); box-shadow: 0 0 24px var(--cyan-glow), inset 0 0 16px rgba(0,229,255,0.1); }
   .power-hint { font-size: 12px; color: var(--text-muted); }
 
@@ -315,9 +332,21 @@
           <div class="preset-scroll" id="presetScrollLive"></div>
         </div>
 
+        <div class="action-row">
+          <div class="action-btn duck" id="duckBtn">
+            <div class="lbl">DUCK</div>
+            <div class="sub">hold to talk</div>
+          </div>
+          <div class="action-btn" id="tuneBtn">
+            <div class="fill" id="tuneFill"></div>
+            <div class="lbl" id="tuneLbl">AUTO TUNE</div>
+            <div class="sub" id="tuneSub">hold 3s to sample</div>
+          </div>
+        </div>
+
         <div class="power-wrap">
           <div class="power-btn" id="powerBtn">
-            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#8888AA" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#8888AA" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <path d="M12 2v6M6.3 5.3a8 8 0 1 0 11.4 0"/>
             </svg>
           </div>
@@ -486,6 +515,22 @@ function dbToLin(db) { return Math.pow(10, db / 20); }
 // Loudness 1–10 maps onto target dBFS -30 … -6
 function loudnessToTargetDb(n) { return -30 + ((n - 1) / 9) * 24; }
 
+// Duck + Auto Tune state
+let duckGainNode = null;
+let spectrumAnalyser = null, spectrumBuf = null;
+let tuneRAF = null, tuneStart = 0, tuneAccum = null, tuneFrames = 0;
+const DUCK_DB = -20;          // how far Duck drops the feed
+const TUNE_HOLD_MS = 3000;    // hold this long to commit a sample
+const TUNE_STRENGTH = 0.6;    // partial correction — full correction overshoots
+
+// Frequency span each EQ band is responsible for
+const TUNE_BANDS = [[20,120],[120,500],[500,2000],[2000,8000],[8000,16000]];
+
+// Expected balance of live music, in dB relative to the overall average.
+// Correcting toward FLAT sounds thin and harsh, because music genuinely
+// carries more energy low and rolls off high. We correct toward this instead.
+const TUNE_TARGET = [4, 1, 0, -1, -3];
+
 // Show Mode state
 let wakeLock = null;
 let wakeLockStatus = 'off';
@@ -554,6 +599,18 @@ async function initAudio() {
     gainNode = audioCtx.createGain();
     gainNode.gain.value = parseFloat(document.getElementById('volSlider').value) / 100;
 
+    duckGainNode = audioCtx.createGain();
+    duckGainNode.gain.value = 1;
+
+    // Spectrum tap for Auto Tune. Separate from the AGC analyser so a big FFT
+    // here doesn't slow the AGC's response. Sits pre-EQ so we measure the room,
+    // not our own correction.
+    spectrumAnalyser = audioCtx.createAnalyser();
+    spectrumAnalyser.fftSize = 4096;
+    spectrumAnalyser.smoothingTimeConstant = 0.3;
+    spectrumBuf = new Float32Array(spectrumAnalyser.frequencyBinCount);
+    monoToStereoNode.connect(spectrumAnalyser);
+
     compressorNode = audioCtx.createDynamicsCompressor();
     updateLimiter();
 
@@ -571,7 +628,8 @@ async function initAudio() {
     agcGainNode.connect(filters[0]);
     for (let i = 0; i < filters.length - 1; i++) filters[i].connect(filters[i + 1]);
     filters[filters.length - 1].connect(gainNode);
-    gainNode.connect(compressorNode);
+    gainNode.connect(duckGainNode);
+    duckGainNode.connect(compressorNode);
     compressorNode.connect(analyserNode);
     analyserNode.connect(audioCtx.destination);
 
@@ -610,6 +668,58 @@ function updateLimiter() {
 }
 
 function setFilterGain(i, db) { if (filters[i]) filters[i].gain.value = db; bandVals[i] = db; }
+
+// ═══════════════════════════════════════════════
+// DUCK — hold to drop the feed so you can talk.
+// Not the same as pause: the mic keeps running, so you still hear the
+// person next to you. Pausing would leave you with sealed earplugs.
+// ═══════════════════════════════════════════════
+function setDuck(on) {
+  if (!duckGainNode || !audioCtx) return;
+  duckGainNode.gain.setTargetAtTime(on ? dbToLin(DUCK_DB) : 1, audioCtx.currentTime, 0.03);
+}
+
+// ═══════════════════════════════════════════════
+// AUTO TUNE — sample the room, correct the worst imbalances
+// ═══════════════════════════════════════════════
+function readBandEnergy() {
+  if (!spectrumAnalyser || !audioCtx) return null;
+  spectrumAnalyser.getFloatFrequencyData(spectrumBuf);
+  const nyq = audioCtx.sampleRate / 2;
+  const n = spectrumBuf.length;
+  return TUNE_BANDS.map(([lo, hi]) => {
+    const i0 = Math.max(0, Math.floor(lo / nyq * n));
+    const i1 = Math.min(n - 1, Math.ceil(hi / nyq * n));
+    let sum = 0, c = 0;
+    for (let i = i0; i <= i1; i++) {
+      const v = spectrumBuf[i];
+      if (isFinite(v) && v > -140) { sum += v; c++; }
+    }
+    return c ? sum / c : -140;
+  });
+}
+
+function commitAutoTune() {
+  if (!tuneAccum || tuneFrames < 10) return 'too short';
+  const avg = tuneAccum.map(v => v / tuneFrames);
+
+  // Refuse to tune off near-silence — we'd just be correcting noise
+  const overall = avg.reduce((a, b) => a + b, 0) / avg.length;
+  if (overall < -85) return 'too quiet';
+
+  avg.forEach((v, i) => {
+    const rel = v - overall;                                   // measured balance
+    let corr = (TUNE_TARGET[i] - rel) * TUNE_STRENGTH;         // move toward target
+    corr = Math.max(-12, Math.min(12, corr));
+    corr = Math.round(corr * 2) / 2;
+    document.getElementById('eqSlider' + i).value = corr;
+    document.getElementById('eqVal' + i).textContent = corr > 0 ? '+' + corr : corr;
+    setFilterGain(i, corr);
+  });
+  drawEqCurve();
+  document.querySelectorAll('.preset-chip').forEach(c => c.classList.remove('active'));
+  return 'ok';
+}
 
 // ═══════════════════════════════════════════════
 // SHOW MODE / WAKE LOCK
@@ -1001,6 +1111,69 @@ document.getElementById('showModeToggle').addEventListener('click', async functi
 document.getElementById('showModeOk').addEventListener('click', () => {
   document.getElementById('showModeModal').classList.remove('show');
 });
+
+// ── DUCK: momentary, hold-to-engage ──
+(function () {
+  const btn = document.getElementById('duckBtn');
+  const on  = (e) => { e.preventDefault(); if (!audioCtx) return; btn.classList.add('armed'); setDuck(true); };
+  const off = (e) => { e.preventDefault(); btn.classList.remove('armed'); setDuck(false); };
+  btn.addEventListener('pointerdown', on);
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => btn.addEventListener(ev, off));
+})();
+
+// ── AUTO TUNE: hold to fill, commits at 3s, release early cancels ──
+(function () {
+  const btn  = document.getElementById('tuneBtn');
+  const fill = document.getElementById('tuneFill');
+  const lbl  = document.getElementById('tuneLbl');
+  const sub  = document.getElementById('tuneSub');
+
+  function reset(msg, cls) {
+    cancelAnimationFrame(tuneRAF); tuneRAF = null;
+    fill.style.width = '0%';
+    btn.classList.remove('armed');
+    if (cls) {
+      btn.classList.add(cls);
+      lbl.textContent = msg;
+      setTimeout(() => { btn.classList.remove(cls); lbl.textContent = 'AUTO TUNE'; sub.textContent = 'hold 3s to sample'; }, 1800);
+    } else {
+      lbl.textContent = 'AUTO TUNE'; sub.textContent = 'hold 3s to sample';
+    }
+  }
+
+  function start(e) {
+    e.preventDefault();
+    if (!audioCtx || !spectrumAnalyser) return;
+    btn.classList.remove('done');
+    btn.classList.add('armed');
+    tuneStart = performance.now();
+    tuneAccum = [0, 0, 0, 0, 0];
+    tuneFrames = 0;
+    sub.textContent = 'listening…';
+
+    function tick(now) {
+      const held = now - tuneStart;
+      fill.style.width = Math.min(100, (held / TUNE_HOLD_MS) * 100) + '%';
+      const bands = readBandEnergy();
+      if (bands) { bands.forEach((v, i) => tuneAccum[i] += v); tuneFrames++; }
+      if (held >= TUNE_HOLD_MS) {
+        const res = commitAutoTune();
+        reset(res === 'ok' ? 'TUNED' : (res === 'too quiet' ? 'TOO QUIET' : 'HOLD LONGER'), res === 'ok' ? 'done' : null);
+        return;
+      }
+      tuneRAF = requestAnimationFrame(tick);
+    }
+    tuneRAF = requestAnimationFrame(tick);
+  }
+
+  function cancel(e) {
+    e.preventDefault();
+    if (tuneRAF) reset(null, null);
+  }
+
+  btn.addEventListener('pointerdown', start);
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => btn.addEventListener(ev, cancel));
+})();
 
 document.getElementById('powerBtn').addEventListener('click', () => {
   if (!audioCtx) return;
