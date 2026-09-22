@@ -492,11 +492,14 @@ let wakeLockStatus = 'off';
 let wasPlayingBeforeHide = false;
 
 const BANDS = [
-  { freq: 80,    type: 'lowshelf',  label: '80Hz',  name: 'Sub' },
-  { freq: 250,   type: 'peaking',   label: '250Hz', name: 'Low' },
-  { freq: 1000,  type: 'peaking',   label: '1kHz',  name: 'Mid' },
-  { freq: 4000,  type: 'peaking',   label: '4kHz',  name: 'Hi-Mid' },
-  { freq: 12000, type: 'highshelf', label: '12kHz', name: 'Air' },
+  // Q per band. Shelves want ~0.7 or they overshoot instead of shelving.
+  // Peaking bands sit 2+ octaves apart, so wide Q (0.8) keeps coverage
+  // continuous — Q 1.4 left audible gaps between bands.
+  { freq: 80,    type: 'lowshelf',  q: 0.7, label: '80Hz',  name: 'Sub' },
+  { freq: 250,   type: 'peaking',   q: 0.8, label: '250Hz', name: 'Low' },
+  { freq: 1000,  type: 'peaking',   q: 0.8, label: '1kHz',  name: 'Mid' },
+  { freq: 4000,  type: 'peaking',   q: 0.8, label: '4kHz',  name: 'Hi-Mid' },
+  { freq: 12000, type: 'highshelf', q: 0.7, label: '12kHz', name: 'Air' },
 ];
 const bandVals = [0, 0, 0, 0, 0];
 
@@ -536,7 +539,7 @@ async function initAudio() {
 
     filters = BANDS.map((b, i) => {
       const f = audioCtx.createBiquadFilter();
-      f.type = b.type; f.frequency.value = b.freq; f.Q.value = 1.4; f.gain.value = bandVals[i];
+      f.type = b.type; f.frequency.value = b.freq; f.Q.value = b.q; f.gain.value = bandVals[i];
       return f;
     });
 
@@ -558,12 +561,16 @@ async function initAudio() {
     analyserNode.fftSize = 1024;
     analyserNode.smoothingTimeConstant = 0.8;
 
-    // source → stereo → EQ → agcTap → agcGain → volume → limiter → analyser → out
-    monoToStereoNode.connect(filters[0]);
-    for (let i = 0; i < filters.length - 1; i++) filters[i].connect(filters[i + 1]);
-    filters[filters.length - 1].connect(agcAnalyser);
+    // source → stereo → agcTap → agcGain → EQ → volume → limiter → analyser → out
+    // AGC now sits BEFORE the EQ. When it ran after, any EQ boost raised the
+    // measured level and the AGC immediately pulled it back down — which is
+    // why the sliders barely did anything. Order is now:
+    //   room level normalized → then tone shaped → then volume → then limiter
+    monoToStereoNode.connect(agcAnalyser);
     agcAnalyser.connect(agcGainNode);
-    agcGainNode.connect(gainNode);
+    agcGainNode.connect(filters[0]);
+    for (let i = 0; i < filters.length - 1; i++) filters[i].connect(filters[i + 1]);
+    filters[filters.length - 1].connect(gainNode);
     gainNode.connect(compressorNode);
     compressorNode.connect(analyserNode);
     analyserNode.connect(audioCtx.destination);
