@@ -123,7 +123,10 @@
     background: linear-gradient(180deg, #23272B, #191C1F);
     box-shadow: 0 -1px 0 rgba(0,0,0,0.6), 0 -2px 0 var(--edge) inset;
     display: grid; grid-template-columns: repeat(4, 1fr);
-    padding: 9px 0 max(9px, env(safe-area-inset-bottom));
+    /* The safe-area inset is padding *inside* the nav bar's own background,
+       not empty space below it — this is what makes the bar itself run
+       flush to the true bottom edge on notched/home-indicator phones. */
+    padding: 9px 0 max(14px, env(safe-area-inset-bottom));
   }
   .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 5px;
               color: var(--text-muted); transition: color .18s; cursor: pointer; }
@@ -133,13 +136,13 @@
   .nav-item span { font-size: 9px; font-weight: 600; letter-spacing: .7px; text-transform: uppercase; }
 
   /* ── OVERLAYS ───────────────────────────────── */
+  /* Base layout only — opacity/transform/.show/.hidden states live with the
+     splash styles below, since the two overlays hand off to one another. */
   .permission-overlay {
     position: fixed; inset: 0; background: radial-gradient(90% 60% at 50% 30%, #23282C, #121416);
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: 20px; z-index: 300; padding: 32px; text-align: center;
   }
-  .permission-overlay.hidden { display: none; }
-  .perm-icon { font-size: 50px; filter: drop-shadow(0 6px 14px rgba(0,0,0,.7)); }
   .perm-title { font-family: 'Space Grotesk', sans-serif; font-size: 25px; font-weight: 700; letter-spacing: -.5px; }
   .perm-body { font-size: 14px; color: var(--text-dim); line-height: 1.65; max-width: 290px; }
   .perm-btn {
@@ -182,11 +185,11 @@
      unmistakably the main control and sits in easy thumb reach. */
   .knob-card { flex: 1 1 auto; min-height: 150px; }
   /* Tiers 2–4 hold their intrinsic height */
-  .meter-card, .preset-row, .action-row { flex: 0 0 auto; }
+  .meter-card, .action-row { flex: 0 0 auto; }
 
   .meter-card { position: relative; padding: 4px 6px 13px; }
   .meter-head { display: flex; align-items: flex-start; justify-content: space-between; padding: 0 9px; }
-  #waveCanvas { width: 100%; height: 58px; display: block; }
+  #levelHistCanvas { width: 100%; height: 64px; display: block; margin-top: 4px; }
   .db-readout { text-align: right;
                 font-size: 9px; font-weight: 700; color: var(--text-muted); letter-spacing: 1.2px; }
   .db-readout .val { font-family: 'Space Grotesk', sans-serif; font-size: 27px; font-weight: 700;
@@ -199,32 +202,50 @@
   .in-readout b.hot { color: var(--green); text-shadow: 0 0 9px rgba(69,217,122,.5); }
   .in-readout b.low { color: var(--amber); }
 
-  .db-meter-wrap { display: flex; align-items: center; gap: 11px; margin-top: 6px; padding: 0 9px; }
-  .db-track { flex: 1; height: 9px; position: relative; overflow: hidden; }
+  .db-meter-wrap { display: flex; align-items: center; gap: 10px; margin-top: 8px; padding: 0 9px; }
+  .db-track { flex: 1; min-width: 0; height: 9px; position: relative; overflow: hidden; }
   .db-fill { height: 100%; width: 0%; border-radius: 999px; transition: width .05s linear;
              background: linear-gradient(90deg, var(--metal-3) 0%, var(--metal-1) 58%, var(--amber) 80%, var(--red) 100%);
              box-shadow: 0 0 11px var(--glow-soft); }
   .db-limit-marker { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--amber);
                      border-radius: 1px; box-shadow: 0 0 6px var(--amber); }
 
-  /* Tappable limiter cap — lives on the Live screen now, right where you're
-     already watching the ceiling get approached. A pill, not a bevel-card:
-     it's a control, so it gets the same raised treatment as other controls. */
-  .limit-chip {
-    display: flex; align-items: center; gap: 6px; flex-shrink: 0;
-    padding: 6px 10px 6px 12px; border-radius: 999px; cursor: pointer;
-    background: linear-gradient(180deg, var(--panel-hi), var(--panel-lo));
-    box-shadow: 0 1px 0 var(--edge-hi) inset, 0 3px 8px -3px rgba(0,0,0,.7);
+  /* Limiter cap — one physical control, not a toggle plus a separate slider.
+     Drag the whole pill like a hardware fader: the far left detent is OFF,
+     everything right of it is a live dB value. What you touch is what you
+     set — there's no second screen to open. */
+  .limit-dial {
+    position: relative; flex-shrink: 0; width: 128px; height: 34px;
+    border-radius: 999px; cursor: pointer; touch-action: none; user-select: none;
+    background: linear-gradient(180deg, var(--well) 0%, #1A1E21 100%);
+    box-shadow: 0 2px 5px rgba(0,0,0,.75) inset, 0 -1px 0 var(--edge) inset;
   }
-  .limit-chip .lc-label { font-size: 8.5px; font-weight: 700; letter-spacing: 1px; color: var(--text-muted); text-transform: uppercase; }
-  .limit-chip .lc-val { font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 700;
-                         color: var(--amber); letter-spacing: .2px; }
-  .limit-chip.off .lc-val { color: var(--text-muted); }
-  .limit-pop { position: absolute; top: 100%; right: 9px; margin-top: 8px; z-index: 30;
-               width: 210px; padding: 16px 16px 14px; display: none; }
-  .limit-pop.open { display: block; }
-  .limit-pop .toggle-row { margin-bottom: 12px; }
-  .limit-pop .toggle-label { font-size: 12px; }
+  .limit-dial-fill {
+    position: absolute; left: 3px; top: 3px; bottom: 3px; border-radius: 999px;
+    background: linear-gradient(90deg, #8A5A1E, var(--amber));
+    box-shadow: 0 0 10px rgba(255,159,46,.45);
+    transition: opacity .15s;
+  }
+  .limit-dial.off .limit-dial-fill { opacity: 0; }
+  .limit-dial-off-zone {
+    position: absolute; left: 3px; top: 3px; bottom: 3px; width: 26px; border-radius: 999px 0 0 999px;
+    box-shadow: inset -1px 0 0 rgba(0,0,0,.4);
+  }
+  .limit-dial-label { position: absolute; inset: 0; display: flex; flex-direction: column;
+                       align-items: center; justify-content: center; z-index: 2; pointer-events: none; }
+  .limit-dial-label .lc-label { font-size: 7.5px; font-weight: 700; letter-spacing: 1px;
+                                 color: rgba(0,0,0,.5); text-transform: uppercase; line-height: 1; }
+  .limit-dial-label .lc-val { font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 700;
+                               color: #1A1206; letter-spacing: .2px; line-height: 1.3; }
+  .limit-dial.off .limit-dial-label .lc-label,
+  .limit-dial.off .limit-dial-label .lc-val { color: var(--text-muted); }
+  .limit-dial-thumb {
+    position: absolute; top: 2px; bottom: 2px; width: 30px; border-radius: 999px; z-index: 3;
+    background: radial-gradient(circle at 50% 35%, #FBFBFC, #C4C9CE 45%, #7D8388 100%);
+    box-shadow: 0 1px 0 rgba(255,255,255,.9) inset, 0 -2px 4px rgba(0,0,0,.3) inset,
+                0 3px 8px -2px rgba(0,0,0,.85);
+    transition: left .04s linear;
+  }
 
   /* ── ROTARY KNOB ────────────────────────────── */
   /* Flat card: the card itself isn't touchable, only the knob inside it is.
@@ -234,10 +255,14 @@
   .knob-card {
     padding: 10px 20px 18px; display: flex; flex-direction: column;
     align-items: center; justify-content: center; gap: 2px;
+    min-height: 0; /* flex child — must be allowed to shrink so the JS sizing below has a real box to measure */
   }
   .knob-meta { text-align: center; flex-shrink: 0; }
-  .knob-stage { position: relative; width: clamp(160px, 56vw, 240px); aspect-ratio: 1;
-                flex-shrink: 1; min-height: 0; touch-action: none; margin-top: 6px; }
+  /* Sized in JS (sizeKnob()), not CSS aspect-ratio: inside a flex column that
+     can shrink, aspect-ratio doesn't reliably hold — the box was landing
+     egg-shaped because width and height were computed independently. JS
+     reads the actual leftover space and sets width=height explicitly. */
+  .knob-stage { position: relative; touch-action: none; margin-top: 6px; flex-shrink: 0; }
   .knob-ring { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(135deg); }
   .knob-ring .trk { fill: none; stroke: rgba(0,0,0,.55); stroke-width: 3; }
   .knob-ring .val { fill: none; stroke: var(--metal-1); stroke-width: 3; stroke-linecap: round;
@@ -471,13 +496,131 @@
   .diag-val.warn { color: var(--amber); }
 
   .pad-bottom { height: 18px; flex-shrink: 0; }
+
+  /* ── SPLASH ─────────────────────────────────── */
+  /* First thing anyone sees. Built from the same wordmark and machined-metal
+     language as the rest of the app — no separate brand asset needed — so
+     it reads as the app waking up, not a stock loading screen bolted on. */
+  .splash {
+    position: fixed; inset: 0; z-index: 500;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 22px;
+    background: radial-gradient(120% 70% at 50% 30%, #23282D 0%, var(--bg) 65%);
+    transition: opacity .5s ease, visibility .5s;
+  }
+  .splash.leaving { opacity: 0; pointer-events: none; }
+  .splash.gone { display: none; }
+
+  .splash-mark { position: relative; width: 128px; height: 128px; }
+  /* Concentric ring that draws itself in, echoing the volume knob's ring —
+     the app's one recurring shape — rather than an unrelated spinner. */
+  .splash-ring { position: absolute; inset: 0; transform: rotate(-90deg); }
+  .splash-ring .trk { fill: none; stroke: rgba(255,255,255,0.06); stroke-width: 2.5; }
+  .splash-ring .val { fill: none; stroke: var(--metal-1); stroke-width: 2.5; stroke-linecap: round;
+                       filter: drop-shadow(0 0 6px var(--glow)); }
+  .splash-core {
+    position: absolute; inset: 22%; border-radius: 50%;
+    background: radial-gradient(circle at 50% 42%, #F4F5F6 0%, #D3D7DB 40%, #8B9196 100%);
+    box-shadow: 0 1px 0 rgba(255,255,255,.9) inset, 0 -3px 8px rgba(0,0,0,.35) inset,
+                0 14px 32px -10px rgba(0,0,0,.85), 0 0 0 1px rgba(0,0,0,.4);
+    display: flex; align-items: center; justify-content: center;
+    animation: splashBreathe 2.6s ease-in-out infinite;
+  }
+  .splash-core svg { width: 34%; height: 34%; opacity: .82; }
+  @keyframes splashBreathe {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.045); }
+  }
+
+  .splash-word { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+  .splash-logo { font-family: 'Space Grotesk', sans-serif; font-size: 27px; font-weight: 700;
+                 letter-spacing: -.5px; opacity: 0; transform: translateY(8px);
+                 animation: splashWordIn .7s cubic-bezier(.16,1,.3,1) .55s forwards; }
+  .splash-logo span { color: var(--text-dim); }
+  .splash-tag { font-size: 10.5px; color: var(--text-muted); letter-spacing: 2.4px; text-transform: uppercase;
+                opacity: 0; transform: translateY(6px);
+                animation: splashWordIn .7s cubic-bezier(.16,1,.3,1) .75s forwards; }
+  @keyframes splashWordIn { to { opacity: 1; transform: translateY(0); } }
+
+  /* Ambient level bars behind the mark — quiet, decorative, hints at what
+     the app does (reads live audio) without saying anything literal. */
+  .splash-bars { position: absolute; inset: 0; display: flex; align-items: flex-end;
+                 justify-content: center; gap: 4px; padding-bottom: 46%; pointer-events: none; }
+  .splash-bars i { width: 3px; border-radius: 2px; background: var(--glow-soft);
+                    animation: splashBar 1.3s ease-in-out infinite; }
+  @keyframes splashBar {
+    0%, 100% { transform: scaleY(0.3); opacity: .35; }
+    50% { transform: scaleY(1); opacity: .8; }
+  }
+
+  /* Permission card — same overlay slot, restyled to match: a raised
+     machined panel instead of a bare emoji, arriving with its own settle
+     rather than being visible from frame one underneath the splash. */
+  .permission-overlay {
+    position: fixed; inset: 0; background: radial-gradient(90% 60% at 50% 28%, #23282C, #121416);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 18px; z-index: 300; padding: 32px; text-align: center;
+    opacity: 0; transform: translateY(10px);
+    transition: opacity .5s cubic-bezier(.16,1,.3,1), transform .5s cubic-bezier(.16,1,.3,1);
+  }
+  .permission-overlay.show { opacity: 1; transform: translateY(0); }
+  .permission-overlay.hidden { display: none; }
+  .perm-mark { position: relative; width: 72px; height: 72px; margin-bottom: 2px; }
+  .perm-mark .core {
+    position: absolute; inset: 10%; border-radius: 50%;
+    background: radial-gradient(circle at 50% 42%, #F4F5F6 0%, #D3D7DB 38%, #8B9196 100%);
+    box-shadow: 0 1px 0 rgba(255,255,255,.9) inset, 0 -3px 6px rgba(0,0,0,.3) inset,
+                0 9px 22px -6px rgba(0,0,0,.85), 0 0 0 1px rgba(0,0,0,.4);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .perm-mark .core svg { width: 40%; height: 40%; opacity: .85; }
+  .perm-mark .ring { position: absolute; inset: 0; transform: rotate(-90deg); }
+  .perm-mark .ring .trk { fill: none; stroke: rgba(255,255,255,.06); stroke-width: 2; }
+  .perm-mark .ring .val { fill: none; stroke: var(--cyan); stroke-width: 2; stroke-linecap: round;
+                           filter: drop-shadow(0 0 5px var(--cyan-glow)); }
 </style>
 </head>
 <body>
 
+<!-- SPLASH — first frame anyone sees. Ring draws in, core breathes once,
+     wordmark settles in behind it, then the whole thing hands off to the
+     permission card. Everything here is built from shapes already used
+     elsewhere in the app (the knob ring, the machined core) so it reads as
+     the same product waking up, not a bolted-on loading screen. -->
+<div class="splash" id="splash">
+  <div class="splash-bars" id="splashBars"></div>
+  <div class="splash-mark">
+    <svg class="splash-ring" viewBox="0 0 128 128" aria-hidden="true">
+      <circle class="trk" cx="64" cy="64" r="58"/>
+      <circle class="val" id="splashRing" cx="64" cy="64" r="58"/>
+    </svg>
+    <div class="splash-core">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#20242A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 18v-6a9 9 0 0 1 18 0v6"/>
+        <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/>
+      </svg>
+    </div>
+  </div>
+  <div class="splash-word">
+    <div class="splash-logo">Show<span>Sound</span></div>
+    <div class="splash-tag">Live EQ &amp; Hearing Protection</div>
+  </div>
+</div>
+
 <!-- PERMISSION OVERLAY -->
 <div class="permission-overlay" id="permOverlay">
-  <div class="perm-icon">🎧</div>
+  <div class="perm-mark">
+    <svg class="ring" viewBox="0 0 72 72" aria-hidden="true">
+      <circle class="trk" cx="36" cy="36" r="32"/>
+      <circle class="val" cx="36" cy="36" r="32" stroke-dasharray="201" stroke-dashoffset="50"/>
+    </svg>
+    <div class="core">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#20242A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 18v-6a9 9 0 0 1 18 0v6"/>
+        <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/>
+      </svg>
+    </div>
+  </div>
   <div class="perm-title">ShowSound</div>
   <div class="perm-body">
     Captures live sound through your mic, shapes it with EQ and a hearing-safe limiter, and plays it through your earbuds.
@@ -526,35 +669,37 @@
         <div class="error-banner" id="errorBanner"></div>
 
         <!-- TIER 2 · glanceable status. Flat: nothing here is tappable
-             except the limiter chip, which gets its own raised pill. -->
-        <div class="meter-card flat" style="position:relative;">
+             except the limiter dial, which gets its own raised treatment. -->
+        <div class="meter-card flat">
           <div class="meter-head">
             <div class="in-readout">MIC IN<b id="inVal">—</b></div>
-            <div class="limit-chip surface" id="limitChip">
-              <span class="lc-label">CAP</span>
-              <span class="lc-val" id="lcVal">85dB</span>
-            </div>
             <div class="db-readout"><span class="val" id="dbVal">—</span>dBSPL</div>
           </div>
-          <canvas id="waveCanvas"></canvas>
+
+          <!-- Rolling history trace: what the last ~12s of level actually
+               did, not just an instantaneous waveform. This is the part
+               inspired by the reference dB-meter app — a live line moving
+               left as time passes, with the safe cap drawn as a fixed
+               reference so you can see margin, not just a single number. -->
+          <canvas id="levelHistCanvas"></canvas>
+
           <div class="db-meter-wrap">
             <div class="db-track well">
               <div class="db-fill" id="dbFill"></div>
               <div class="db-limit-marker" id="limitMarker" style="left:70%"></div>
             </div>
-          </div>
-
-          <!-- Limiter popover: same control as Settings, surfaced here too -->
-          <div class="limit-pop surface" id="limitPop">
-            <div class="toggle-row">
-              <div class="toggle-label">Hard limiter</div>
-              <div class="toggle on amber-toggle" id="limiterToggleLive"></div>
+            <!-- One physical control: drag anywhere on the pill to set the
+                 cap; drag into the left zone to switch it off. No separate
+                 toggle, no popover. -->
+            <div class="limit-dial" id="limitDial">
+              <div class="limit-dial-off-zone"></div>
+              <div class="limit-dial-fill" id="limitDialFill"></div>
+              <div class="limit-dial-thumb" id="limitDialThumb"></div>
+              <div class="limit-dial-label">
+                <span class="lc-label" id="lcLabel">CAP</span>
+                <span class="lc-val" id="lcVal">85dB</span>
+              </div>
             </div>
-            <div class="dial-track well" style="position:relative;">
-              <div class="dial-fill amber" id="limitFillLive" style="width:50%"></div>
-              <input type="range" class="dial-slider" id="limitSliderLive" min="60" max="105" value="85" step="1">
-            </div>
-            <div class="card-desc" id="limitDescLive" style="margin-top:8px;">Safe for about 8 hrs at this level.</div>
           </div>
         </div>
 
@@ -578,13 +723,9 @@
           <input type="range" id="volSlider" min="0" max="100" value="100" style="display:none">
         </div>
 
-        <!-- TIER 3 · occasional -->
-        <div class="preset-row">
-          <div class="row-label">Venue</div>
-          <div class="preset-scroll" id="presetScrollLive"></div>
-        </div>
-
-        <!-- TIER 2 · urgent, lowest = easiest thumb reach -->
+        <!-- TIER 2 · urgent, lowest = easiest thumb reach. Venue presets
+             moved to the EQ tab, next to the curve they actually change,
+             so this row is now purely the two hold actions. -->
         <div class="action-row">
           <div class="action-btn duck surface" id="duckBtn">
             <div class="lbl">DUCK</div>
@@ -1131,7 +1272,7 @@ function startMeter() {
   function loop(now) {
     if (!analyserNode) return;
     updateAgc(now || performance.now());
-    if (currentTab === 'live') { drawWaveform(); updateDbMeter(); }
+    if (currentTab === 'live') { updateDbMeter(); drawLevelHistory(); }
     animFrame = requestAnimationFrame(loop);
   }
   loop(performance.now());
@@ -1237,35 +1378,102 @@ function updateDbMeter() {
     const r = Math.round(spl);
     valEl.textContent = r;
     valEl.className = 'val' + (r >= limitVal ? ' danger' : r >= limitVal - 5 ? ' warn' : '');
+    pushLevelHistory(spl);
   } else {
     document.getElementById('dbFill').style.width = '0%';
     valEl.textContent = '—'; valEl.className = 'val';
+    pushLevelHistory(null);
   }
 }
 
-function drawWaveform() {
-  const canvas = document.getElementById('waveCanvas');
+// ═══════════════════════════════════════════════
+// LEVEL HISTORY — rolling dB trace, styled after a real SPL-meter app.
+// An instantaneous waveform (the old drawWaveform) shows *that* sound is
+// happening; this shows *how loud* it's been over the last ~12s and how
+// close that's been running to the safety cap — the actual question you
+// want answered without opening Settings or the log.
+// ═══════════════════════════════════════════════
+const LEVEL_HIST_SECONDS = 12;
+const LEVEL_HIST_LEN = 90;              // samples over that window
+let levelHist = new Array(LEVEL_HIST_LEN).fill(null);
+let levelHistLastPush = 0;
+
+function pushLevelHistory(spl) {
+  const now = performance.now();
+  const stepMs = (LEVEL_HIST_SECONDS * 1000) / LEVEL_HIST_LEN;
+  if (now - levelHistLastPush < stepMs) return;
+  levelHistLastPush = now;
+  levelHist.push(spl);
+  if (levelHist.length > LEVEL_HIST_LEN) levelHist.shift();
+}
+
+function drawLevelHistory() {
+  const canvas = document.getElementById('levelHistCanvas');
   const W = canvas.offsetWidth, H = 64;
   if (!W) return;
-  canvas.width = W; canvas.height = H;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = W * dpr; canvas.height = H * dpr;
   const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, W, H);
+
+  const limitVal = parseInt(document.getElementById('limitSlider').value);
+  const lo = 30, hi = Math.max(limitVal + 10, 90);   // fixed-ish scale, cap always has headroom above it
+  const yFor = (spl) => H - ((spl - lo) / (hi - lo)) * H;
+
+  // Reference grid — quiet reading, matches the labeled-line convention
+  // from the inspiration app without competing for attention.
+  ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 1;
+  [40, 60, 80, 100].forEach(v => {
+    if (v < lo || v > hi) return;
+    const y = yFor(v);
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  });
+
+  // Safety cap line — amber, dashed, always visible so you can read margin
+  // to it at a glance rather than doing math against a number.
+  const capY = yFor(limitVal);
+  ctx.strokeStyle = 'rgba(255,159,46,0.55)'; ctx.lineWidth = 1.3; ctx.setLineDash([3, 4]);
+  ctx.beginPath(); ctx.moveTo(0, capY); ctx.lineTo(W, capY); ctx.stroke(); ctx.setLineDash([]);
+
   if (!analyserNode || !isPlaying) {
-    ctx.strokeStyle = 'rgba(42,42,64,0.8)'; ctx.lineWidth = 1.5; ctx.setLineDash([4, 8]);
-    ctx.beginPath(); ctx.moveTo(0, H/2); ctx.lineTo(W, H/2); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(255,255,255,0.28)'; ctx.font = '10px Inter, sans-serif';
+    ctx.fillText('waiting for signal…', 8, H - 8);
     return;
   }
-  analyserNode.getByteTimeDomainData(dataArray8);
-  const slice = W / dataArray8.length;
-  ctx.beginPath();
-  for (let i = 0; i < dataArray8.length; i++) {
-    const y = ((dataArray8[i] / 128.0) * H) / 2;
-    if (i === 0) ctx.moveTo(0, y); else ctx.lineTo(i * slice, y);
+
+  const pts = [];
+  for (let i = 0; i < levelHist.length; i++) {
+    if (levelHist[i] == null) continue;
+    const x = (i / (levelHist.length - 1)) * W;
+    pts.push({ x, y: yFor(Math.max(lo, Math.min(hi, levelHist[i]))) });
   }
-  const g = ctx.createLinearGradient(0, 0, W, 0);
-  g.addColorStop(0, 'rgba(0,229,255,0.3)'); g.addColorStop(0.5, '#00E5FF'); g.addColorStop(1, 'rgba(0,229,255,0.3)');
-  ctx.strokeStyle = g; ctx.lineWidth = 2;
-  ctx.shadowColor = '#00E5FF'; ctx.shadowBlur = 6; ctx.stroke(); ctx.shadowBlur = 0;
+  if (pts.length < 2) return;
+
+  // Filled area under the trace, then the stroked line on top — reads as
+  // a level, not just a squiggle, echoing the filled curves in the
+  // reference meter while staying inside our own palette.
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, H);
+  pts.forEach(p => ctx.lineTo(p.x, p.y));
+  ctx.lineTo(pts[pts.length - 1].x, H);
+  ctx.closePath();
+  const fill = ctx.createLinearGradient(0, 0, 0, H);
+  fill.addColorStop(0, 'rgba(0,229,255,0.22)'); fill.addColorStop(1, 'rgba(0,229,255,0.02)');
+  ctx.fillStyle = fill; ctx.fill();
+
+  ctx.beginPath();
+  pts.forEach((p, i) => { if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y); });
+  const last = pts[pts.length - 1];
+  const over = last.y <= capY;
+  ctx.strokeStyle = over ? '#FF9F2E' : '#00E5FF';
+  ctx.lineWidth = 2;
+  ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 6;
+  ctx.stroke(); ctx.shadowBlur = 0;
+
+  // Leading dot — current instant, the eye's anchor point on a scrolling trace
+  ctx.beginPath(); ctx.arc(last.x, last.y, 3, 0, Math.PI * 2);
+  ctx.fillStyle = ctx.strokeStyle; ctx.fill();
 }
 
 // ═══════════════════════════════════════════════
@@ -1288,7 +1496,6 @@ function updateSafeTime() {
   setDiag('statSafe', safeStr);
   setDiag('statLimit', limitVal + ' dB');
   document.getElementById('limitDesc').textContent = 'Safe for about ' + safeStr + ' at this level.';
-  document.getElementById('limitDescLive').textContent = 'Safe for about ' + safeStr + ' at this level.';
   document.getElementById('safeTimeText').textContent = safeHours >= 2 ? 'Safe at this level' : '⚠️ Limit your exposure time';
 }
 
@@ -1323,24 +1530,23 @@ function applyPreset(name) {
   drawEqCurve();
 }
 
-// Preset chips are rendered into both Live and EQ tabs and stay in sync
+// Preset chips live only on the EQ tab now, right above the curve they
+// drive, so tapping one shows you exactly what it does to the bands.
 function buildPresetChips() {
-  ['presetScrollLive', 'presetScrollTab'].forEach(hostId => {
-    const host = document.getElementById(hostId);
-    host.innerHTML = '';
-    Object.keys(PRESETS).forEach((key, idx) => {
-      const chip = document.createElement('div');
-      chip.className = 'preset-chip' + (idx === 0 ? ' active' : '');
-      chip.textContent = PRESETS[key].label;
-      chip.dataset.preset = key;
-      chip.addEventListener('click', () => {
-        document.querySelectorAll('.preset-chip').forEach(c => {
-          c.classList.toggle('active', c.dataset.preset === key);
-        });
-        applyPreset(key);
+  const host = document.getElementById('presetScrollTab');
+  host.innerHTML = '';
+  Object.keys(PRESETS).forEach((key, idx) => {
+    const chip = document.createElement('div');
+    chip.className = 'preset-chip' + (idx === 0 ? ' active' : '');
+    chip.textContent = PRESETS[key].label;
+    chip.dataset.preset = key;
+    chip.addEventListener('click', () => {
+      host.querySelectorAll('.preset-chip').forEach(c => {
+        c.classList.toggle('active', c.dataset.preset === key);
       });
-      host.appendChild(chip);
+      applyPreset(key);
     });
+    host.appendChild(chip);
   });
 }
 buildPresetChips();
@@ -1383,7 +1589,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
     document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n === item));
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + tab));
     // Canvases have zero width while hidden — redraw once visible
-    requestAnimationFrame(() => { if (tab === 'live') drawWaveform(); if (tab === 'presets') drawEqCurve(); });
+    requestAnimationFrame(() => { if (tab === 'live') drawLevelHistory(); if (tab === 'presets') drawEqCurve(); });
   });
 });
 
@@ -1396,24 +1602,19 @@ document.getElementById('volSlider').addEventListener('input', function() {
   if (gainNode) gainNode.gain.value = this.value / 100;
 });
 
-// Limiter cap has two controls now — the Settings slider and the Live-tab
-// popover slider — kept in sync so either one is the source of truth.
+// Limiter cap — Settings keeps the full slider+toggle for when you want
+// the description text; the Live dial below is the same value, one control.
 function syncLimitControls(v, source) {
   document.getElementById('limitFill').style.width = ((v-60)/45*100) + '%';
   document.getElementById('limitLabel').textContent = v + ' dB';
   document.getElementById('limitMarker').style.left = ((v-50)/60*100) + '%';
-  document.getElementById('lcVal').textContent = v + 'dB';
-  document.getElementById('limitFillLive').style.width = ((v-60)/45*100) + '%';
   if (source !== 'settings') document.getElementById('limitSlider').value = v;
-  if (source !== 'live') document.getElementById('limitSliderLive').value = v;
-  updateLimiter(); updateSafeTime();
+  if (source !== 'live') renderLimitDial(v, document.getElementById('limiterToggle').classList.contains('on'));
+  updateLimiter(); updateSafeTime(); drawLevelHistory();
 }
 
 document.getElementById('limitSlider').addEventListener('input', function() {
   syncLimitControls(parseInt(this.value), 'settings');
-});
-document.getElementById('limitSliderLive').addEventListener('input', function() {
-  syncLimitControls(parseInt(this.value), 'live');
 });
 
 document.getElementById('agcToggle').addEventListener('click', function() {
@@ -1460,28 +1661,94 @@ document.getElementById('logClearBtn').addEventListener('click', function() {
   setDiag('diagLogCount', '0 samples');
 });
 
-// Limiter on/off, also mirrored between Settings and the Live popover
+// Limiter on/off — Settings toggle stays as the explicit switch;
+// dragging the Live dial into its off-zone does the same thing.
 function syncLimiterToggle(on, source) {
   document.getElementById('limiterToggle').classList.toggle('on', on);
-  document.getElementById('limiterToggleLive').classList.toggle('on', on);
-  document.getElementById('limitChip').classList.toggle('off', !on);
   document.getElementById('limReveal').classList.toggle('open', on);
-  updateLimiter();
+  if (source !== 'live') renderLimitDial(parseInt(document.getElementById('limitSlider').value), on);
+  updateLimiter(); drawLevelHistory();
 }
 document.getElementById('limiterToggle').addEventListener('click', function() {
   syncLimiterToggle(!this.classList.contains('on'), 'settings');
 });
-document.getElementById('limiterToggleLive').addEventListener('click', function() {
-  syncLimiterToggle(!this.classList.contains('on'), 'live');
-});
 
-// Limiter chip on the Live meter — tap to open the popover in place
-document.getElementById('limitChip').addEventListener('click', function(e) {
-  e.stopPropagation();
-  document.getElementById('limitPop').classList.toggle('open');
-});
-document.getElementById('limitPop').addEventListener('click', (e) => e.stopPropagation());
-document.addEventListener('click', () => document.getElementById('limitPop').classList.remove('open'));
+// ═══════════════════════════════════════════════
+// LIVE LIMITER DIAL — one hardware-style fader instead of a toggle plus a
+// separate slider. Left of the divider is OFF; right of it, drag position
+// sets the cap in dB directly. Position is the value — nothing else to open.
+// ═══════════════════════════════════════════════
+const LIMIT_DIAL_MIN = 60, LIMIT_DIAL_MAX = 105;
+const LIMIT_DIAL_OFF_ZONE_PX = 26;   // matches .limit-dial-off-zone width
+
+function renderLimitDial(v, on) {
+  const dial = document.getElementById('limitDial');
+  const fill = document.getElementById('limitDialFill');
+  const thumb = document.getElementById('limitDialThumb');
+  const val = document.getElementById('lcVal');
+  const lbl = document.getElementById('lcLabel');
+  if (!dial) return;
+  const W = dial.offsetWidth || 128;
+  const track = W - LIMIT_DIAL_OFF_ZONE_PX - 6;   // usable travel right of the off-zone
+  dial.classList.toggle('off', !on);
+  if (!on) {
+    thumb.style.left = '3px';
+    fill.style.right = (W - LIMIT_DIAL_OFF_ZONE_PX) + 'px';
+    fill.style.left = '3px';
+    lbl.textContent = 'CAP';
+    val.textContent = 'OFF';
+    return;
+  }
+  const frac = Math.max(0, Math.min(1, (v - LIMIT_DIAL_MIN) / (LIMIT_DIAL_MAX - LIMIT_DIAL_MIN)));
+  const thumbX = LIMIT_DIAL_OFF_ZONE_PX + frac * track;
+  thumb.style.left = thumbX + 'px';
+  fill.style.left = '3px';
+  fill.style.right = (W - thumbX - 30) + 'px';
+  lbl.textContent = 'CAP';
+  val.textContent = v + 'dB';
+}
+
+(function initLimitDial() {
+  const dial = document.getElementById('limitDial');
+  if (!dial) return;
+  let dragging = false;
+
+  function valueFromX(x) {
+    const rect = dial.getBoundingClientRect();
+    const localX = x - rect.left;
+    if (localX < LIMIT_DIAL_OFF_ZONE_PX * 0.7) return null;   // dropped into the off-zone
+    const track = rect.width - LIMIT_DIAL_OFF_ZONE_PX - 6;
+    const frac = Math.max(0, Math.min(1, (localX - LIMIT_DIAL_OFF_ZONE_PX) / track));
+    return Math.round(LIMIT_DIAL_MIN + frac * (LIMIT_DIAL_MAX - LIMIT_DIAL_MIN));
+  }
+
+  function apply(x) {
+    const v = valueFromX(x);
+    if (v === null) {
+      if (document.getElementById('limiterToggle').classList.contains('on')) {
+        syncLimiterToggle(false, 'live');
+      }
+      return;
+    }
+    if (!document.getElementById('limiterToggle').classList.contains('on')) {
+      syncLimiterToggle(true, 'live');
+    }
+    syncLimitControls(v, 'live');
+  }
+
+  dial.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    dragging = true;
+    dial.setPointerCapture(e.pointerId);
+    apply(e.clientX);
+  });
+  dial.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    e.preventDefault();
+    apply(e.clientX);
+  });
+  ['pointerup', 'pointercancel'].forEach(ev => dial.addEventListener(ev, () => { dragging = false; }));
+})();
 
 document.getElementById('showModeToggle').addEventListener('click', async function() {
   this.classList.toggle('on');
@@ -1590,6 +1857,26 @@ function renderKnob(pct) {
   knob.style.transform = 'rotate(' + (-135 + frac * KNOB_SWEEP) + 'deg)';
 }
 
+// Sets width AND height explicitly, in px, to the same value. The knob was
+// coming out egg-shaped because CSS `aspect-ratio` doesn't reliably hold on
+// a box inside a shrinking flex column — width and height were each being
+// resolved independently. Measuring the real leftover space and forcing a
+// square is the only way that's actually reliable across iOS Safari.
+function sizeKnob() {
+  const card = document.querySelector('.knob-card');
+  const stage = document.getElementById('volKnob');
+  if (!card || !stage) return;
+  const meta = card.querySelector('.knob-meta');
+  const unit = card.querySelector('.unit');
+  const cardH = card.clientHeight;
+  const usedH = (meta ? meta.offsetHeight : 0) + (unit ? unit.offsetHeight : 0) + 20; // padding/gaps
+  const availH = Math.max(0, cardH - usedH);
+  const availW = card.clientWidth - 40; // card horizontal padding
+  const side = Math.max(120, Math.min(260, Math.min(availH, availW)));
+  stage.style.width = side + 'px';
+  stage.style.height = side + 'px';
+}
+
 (function initKnob() {
   const stage = document.getElementById('volKnob');
   const input = document.getElementById('volSlider');
@@ -1636,7 +1923,48 @@ function renderKnob(pct) {
     stage.addEventListener(ev, () => { dragging = false; stage.classList.remove('active'); })
   );
 
+  sizeKnob();
   renderKnob(parseFloat(input.value));
+})();
+
+// ═══════════════════════════════════════════════
+// SPLASH SEQUENCE
+// Ring draws itself in over ~900ms, the core does one settle-breathe, the
+// wordmark fades up behind it — then the whole mark hands off to the
+// permission card with a cross-fade rather than a hard cut. Runs once per
+// launch; there's nothing to gate it on since it's pure UI, not audio.
+// ═══════════════════════════════════════════════
+(function runSplash() {
+  const splash = document.getElementById('splash');
+  const perm = document.getElementById('permOverlay');
+  const ring = document.getElementById('splashRing');
+  const barsHost = document.getElementById('splashBars');
+  if (!splash || !ring) return;
+
+  // A few ambient bars, staggered, purely decorative
+  let barsHtml = '';
+  for (let i = 0; i < 9; i++) {
+    const h = 14 + Math.abs(4 - i) * -3 + 26;
+    barsHtml += '<i style="height:' + h + 'px; animation-delay:' + (i * 0.09).toFixed(2) + 's"></i>';
+  }
+  barsHost.innerHTML = barsHtml;
+
+  const R = 58, CIRC = 2 * Math.PI * R;
+  ring.style.strokeDasharray = String(CIRC);
+  ring.style.strokeDashoffset = String(CIRC);
+  ring.style.transition = 'stroke-dashoffset 0.9s cubic-bezier(.65,0,.35,1)';
+
+  // Kick the draw-in on the next frame so the initial state actually paints first
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => { ring.style.strokeDashoffset = '0'; });
+  });
+
+  const HOLD_MS = 1500;   // total time the mark gets before handing off
+  setTimeout(() => {
+    splash.classList.add('leaving');
+    perm.classList.add('show');
+    setTimeout(() => splash.classList.add('gone'), 550);
+  }, HOLD_MS);
 })();
 
 // ── INIT ──
@@ -1645,8 +1973,18 @@ try {
   if (saved) { sessionLog = JSON.parse(saved) || []; setDiag('diagLogCount', sessionLog.length + ' samples'); }
 } catch (e) {}
 
-setTimeout(() => { drawEqCurve(); drawWaveform(); updateSafeTime(); updateUI(); }, 150);
-window.addEventListener('resize', () => { drawEqCurve(); drawWaveform(); });
+setTimeout(() => {
+  drawEqCurve(); drawLevelHistory(); updateSafeTime(); updateUI();
+  renderLimitDial(parseInt(document.getElementById('limitSlider').value),
+                   document.getElementById('limiterToggle').classList.contains('on'));
+  sizeKnob(); renderKnob(parseFloat(document.getElementById('volSlider').value));
+}, 150);
+window.addEventListener('resize', () => {
+  drawEqCurve(); drawLevelHistory();
+  renderLimitDial(parseInt(document.getElementById('limitSlider').value),
+                   document.getElementById('limiterToggle').classList.contains('on'));
+  sizeKnob();
+});
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js').catch(() => {}); });
