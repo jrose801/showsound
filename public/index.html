@@ -55,7 +55,9 @@
            var(--bg); }
 
   /* ── SURFACES ───────────────────────────────── */
-  /* Raised machined panel */
+  /* Raised machined panel — reserved for things you can actually touch:
+     knobs, sliders, buttons, toggles. If it has a bevel, it responds to
+     a tap. Nothing display-only gets this anymore. */
   .surface {
     background: linear-gradient(180deg, var(--panel-hi) 0%, var(--panel) 46%, var(--panel-lo) 100%);
     border-radius: var(--radius);
@@ -64,6 +66,14 @@
       0 -1px 0 rgba(0,0,0,0.5) inset,
       0 10px 22px -8px var(--shadow),
       0 2px 4px rgba(0,0,0,0.4);
+  }
+  /* Flat surface — display-only readouts (meters, stats, diagnostics).
+     No bevel, no shadow depth: it sits on the panel rather than floating
+     above it, so it visually reads as "look, don't touch." Grouping comes
+     from spacing, not from a container that mimics a button. */
+  .flat {
+    background: transparent;
+    border-radius: var(--radius);
   }
   /* Recessed well — anything a control sits *inside* */
   .well {
@@ -174,37 +184,60 @@
   /* Tiers 2–4 hold their intrinsic height */
   .meter-card, .preset-row, .action-row { flex: 0 0 auto; }
 
-  .meter-card { position: relative; padding: 12px 15px 13px; }
+  .meter-card { position: relative; padding: 4px 6px 13px; }
+  .meter-head { display: flex; align-items: flex-start; justify-content: space-between; padding: 0 9px; }
   #waveCanvas { width: 100%; height: 58px; display: block; }
-  .db-readout { position: absolute; top: 13px; right: 17px; text-align: right;
+  .db-readout { text-align: right;
                 font-size: 9px; font-weight: 700; color: var(--text-muted); letter-spacing: 1.2px; }
   .db-readout .val { font-family: 'Space Grotesk', sans-serif; font-size: 27px; font-weight: 700;
                      color: var(--metal-1); display: block; line-height: 1;
                      text-shadow: 0 0 14px var(--glow-soft); transition: color .3s, text-shadow .3s; }
   .db-readout .val.warn { color: var(--amber); text-shadow: 0 0 14px rgba(255,159,46,.5); }
   .db-readout .val.danger { color: var(--red); text-shadow: 0 0 14px rgba(255,68,56,.55); }
-  .in-readout { position: absolute; top: 15px; left: 17px; font-size: 9px; color: var(--text-muted); letter-spacing: 1.2px; font-weight: 700; }
-  .in-readout b { font-family: 'Space Grotesk', sans-serif; font-size: 12px; color: var(--text-dim); font-weight: 700; }
+  .in-readout { font-size: 9px; color: var(--text-muted); letter-spacing: 1.2px; font-weight: 700; }
+  .in-readout b { font-family: 'Space Grotesk', sans-serif; font-size: 12px; color: var(--text-dim); font-weight: 700; display: block; margin-top: 2px; }
   .in-readout b.hot { color: var(--green); text-shadow: 0 0 9px rgba(69,217,122,.5); }
   .in-readout b.low { color: var(--amber); }
 
-  .db-meter-wrap { display: flex; align-items: center; gap: 11px; margin-top: 11px; }
+  .db-meter-wrap { display: flex; align-items: center; gap: 11px; margin-top: 6px; padding: 0 9px; }
   .db-track { flex: 1; height: 9px; position: relative; overflow: hidden; }
   .db-fill { height: 100%; width: 0%; border-radius: 999px; transition: width .05s linear;
              background: linear-gradient(90deg, var(--metal-3) 0%, var(--metal-1) 58%, var(--amber) 80%, var(--red) 100%);
              box-shadow: 0 0 11px var(--glow-soft); }
   .db-limit-marker { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--amber);
                      border-radius: 1px; box-shadow: 0 0 6px var(--amber); }
-  .limit-val { font-family: 'Space Grotesk', sans-serif; font-size: 10px; color: var(--amber);
-               font-weight: 700; width: 42px; text-align: right; letter-spacing: .4px; }
+
+  /* Tappable limiter cap — lives on the Live screen now, right where you're
+     already watching the ceiling get approached. A pill, not a bevel-card:
+     it's a control, so it gets the same raised treatment as other controls. */
+  .limit-chip {
+    display: flex; align-items: center; gap: 6px; flex-shrink: 0;
+    padding: 6px 10px 6px 12px; border-radius: 999px; cursor: pointer;
+    background: linear-gradient(180deg, var(--panel-hi), var(--panel-lo));
+    box-shadow: 0 1px 0 var(--edge-hi) inset, 0 3px 8px -3px rgba(0,0,0,.7);
+  }
+  .limit-chip .lc-label { font-size: 8.5px; font-weight: 700; letter-spacing: 1px; color: var(--text-muted); text-transform: uppercase; }
+  .limit-chip .lc-val { font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 700;
+                         color: var(--amber); letter-spacing: .2px; }
+  .limit-chip.off .lc-val { color: var(--text-muted); }
+  .limit-pop { position: absolute; top: 100%; right: 9px; margin-top: 8px; z-index: 30;
+               width: 210px; padding: 16px 16px 14px; display: none; }
+  .limit-pop.open { display: block; }
+  .limit-pop .toggle-row { margin-bottom: 12px; }
+  .limit-pop .toggle-label { font-size: 12px; }
 
   /* ── ROTARY KNOB ────────────────────────────── */
+  /* Flat card: the card itself isn't touchable, only the knob inside it is.
+     Stacked layout — big number up top where a dragging thumb can't cover
+     it, knob centered below and sized to actually fill the leftover space
+     instead of sharing a cramped row with the label. */
   .knob-card {
-    padding: 14px 20px; display: flex; align-items: center; justify-content: center;
-    gap: clamp(14px, 5vw, 32px);
+    padding: 10px 20px 18px; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 2px;
   }
-  .knob-stage { position: relative; width: clamp(116px, 34vw, 152px); aspect-ratio: 1;
-                flex-shrink: 0; touch-action: none; }
+  .knob-meta { text-align: center; flex-shrink: 0; }
+  .knob-stage { position: relative; width: clamp(160px, 56vw, 240px); aspect-ratio: 1;
+                flex-shrink: 1; min-height: 0; touch-action: none; margin-top: 6px; }
   .knob-ring { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(135deg); }
   .knob-ring .trk { fill: none; stroke: rgba(0,0,0,.55); stroke-width: 3; }
   .knob-ring .val { fill: none; stroke: var(--metal-1); stroke-width: 3; stroke-linecap: round;
@@ -242,10 +275,10 @@
 
   .knob-meta { min-width: 0; }
   .knob-meta h3 { font-family: 'Space Grotesk', sans-serif; font-size: 10px; font-weight: 700;
-                  color: var(--text-muted); letter-spacing: 1.6px; text-transform: uppercase; margin-bottom: 5px; }
-  .knob-meta .num { font-family: 'Space Grotesk', sans-serif; font-size: clamp(44px, 14vw, 64px); font-weight: 700;
+                  color: var(--text-muted); letter-spacing: 1.6px; text-transform: uppercase; margin-bottom: 2px; }
+  .knob-meta .num { font-family: 'Space Grotesk', sans-serif; font-size: clamp(40px, 12vw, 56px); font-weight: 700;
                     line-height: 1; color: var(--metal-1); text-shadow: 0 0 20px var(--glow-soft); }
-  .knob-meta .unit { font-size: 11px; color: var(--text-muted); letter-spacing: 1px; margin-top: 6px; }
+  .unit { font-size: 10px; color: var(--text-muted); letter-spacing: 1.4px; margin-top: 4px; text-transform: uppercase; flex-shrink: 0; }
 
   /* ── PRESET CHIPS ───────────────────────────── */
   .preset-row { flex-shrink: 0; }
@@ -492,22 +525,47 @@
       <div class="live-wrap">
         <div class="error-banner" id="errorBanner"></div>
 
-        <!-- TIER 2 · glanceable status -->
-        <div class="meter-card surface">
+        <!-- TIER 2 · glanceable status. Flat: nothing here is tappable
+             except the limiter chip, which gets its own raised pill. -->
+        <div class="meter-card flat" style="position:relative;">
+          <div class="meter-head">
+            <div class="in-readout">MIC IN<b id="inVal">—</b></div>
+            <div class="limit-chip surface" id="limitChip">
+              <span class="lc-label">CAP</span>
+              <span class="lc-val" id="lcVal">85dB</span>
+            </div>
+            <div class="db-readout"><span class="val" id="dbVal">—</span>dBSPL</div>
+          </div>
           <canvas id="waveCanvas"></canvas>
-          <div class="db-readout"><span class="val" id="dbVal">—</span>dBSPL</div>
-          <div class="in-readout">MIC IN <b id="inVal">—</b></div>
           <div class="db-meter-wrap">
             <div class="db-track well">
               <div class="db-fill" id="dbFill"></div>
               <div class="db-limit-marker" id="limitMarker" style="left:70%"></div>
             </div>
-            <div class="limit-val" id="limitValLabel">85dB</div>
+          </div>
+
+          <!-- Limiter popover: same control as Settings, surfaced here too -->
+          <div class="limit-pop surface" id="limitPop">
+            <div class="toggle-row">
+              <div class="toggle-label">Hard limiter</div>
+              <div class="toggle on amber-toggle" id="limiterToggleLive"></div>
+            </div>
+            <div class="dial-track well" style="position:relative;">
+              <div class="dial-fill amber" id="limitFillLive" style="width:50%"></div>
+              <input type="range" class="dial-slider" id="limitSliderLive" min="60" max="105" value="85" step="1">
+            </div>
+            <div class="card-desc" id="limitDescLive" style="margin-top:8px;">Safe for about 8 hrs at this level.</div>
           </div>
         </div>
 
-        <!-- TIER 1 · the hero: what you touch most, biggest target -->
-        <div class="knob-card surface">
+        <!-- TIER 1 · the hero: what you touch most, biggest target.
+             Number sits above the knob so a dragging thumb never covers
+             the value you're trying to watch while you drag. -->
+        <div class="knob-card flat">
+          <div class="knob-meta">
+            <h3>Volume</h3>
+            <div class="num" id="volLabel">100</div>
+          </div>
           <div class="knob-stage" id="volKnob">
             <svg class="knob-ticks" viewBox="0 0 116 116" aria-hidden="true"></svg>
             <svg class="knob-ring" viewBox="0 0 116 116" aria-hidden="true">
@@ -516,11 +574,7 @@
             </svg>
             <div class="knob"><div class="knob-dot"></div></div>
           </div>
-          <div class="knob-meta">
-            <h3>Volume</h3>
-            <div class="num" id="volLabel">100</div>
-            <div class="unit">DRAG ↑ ↓</div>
-          </div>
+          <div class="unit">DRAG ↑ ↓</div>
           <input type="range" id="volSlider" min="0" max="100" value="100" style="display:none">
         </div>
 
@@ -556,7 +610,7 @@
         <div class="eq-grid" id="eqGrid"></div>
         <div class="eq-curve-wrap"><canvas id="eqCurveCanvas"></canvas></div>
       </div>
-      <div class="card surface">
+      <div class="card flat">
         <div class="card-title">Tip</div>
         <div class="card-desc">Set your EQ once for the room, then leave it. Changes apply live and stay put when you switch back to the Live tab.</div>
       </div>
@@ -566,15 +620,15 @@
     <!-- ════════ HISTORY ════════ -->
     <div class="tab-panel" id="tab-history">
       <div class="section-label"><h3>Hearing Dose</h3></div>
-      <div class="dose-card surface">
+      <div class="dose-card flat">
         <div class="dose-timer" id="hearingTimer">0:00</div>
         <div class="dose-label" id="safeTimeText">Safe at this level</div>
       </div>
       <div class="stat-grid">
-        <div class="stat surface"><div class="v" id="statLimit">85 dB</div><div class="k">Output cap</div></div>
-        <div class="stat surface"><div class="v" id="statSafe">8 hrs</div><div class="k">Safe exposure</div></div>
+        <div class="stat flat"><div class="v" id="statLimit">85 dB</div><div class="k">Output cap</div></div>
+        <div class="stat flat"><div class="v" id="statSafe">8 hrs</div><div class="k">Safe exposure</div></div>
       </div>
-      <div class="card surface">
+      <div class="card flat">
         <div class="card-title">How this works</div>
         <div class="card-desc">Safe exposure follows the 3&nbsp;dB exchange rate: every 3&nbsp;dB louder halves the time you can listen safely. The timer counts how long audio has been running this session.</div>
       </div>
@@ -654,7 +708,7 @@
       </div>
 
       <div class="section-label"><h3>Session Log</h3><span class="hint" id="diagLogCount">0 samples</span></div>
-      <div class="card surface">
+      <div class="card flat">
         <div class="card-desc" style="margin-top:0;">Records mic input, auto gain and output once per second. Review this after a show to see exactly where the signal went.</div>
         <div style="display:flex; gap:8px; margin-top:14px;">
           <div class="action-btn surface" id="logCopyBtn" style="flex:1; padding:11px 8px;"><div class="lbl" style="font-size:12px;">COPY LOG</div></div>
@@ -664,7 +718,7 @@
       </div>
 
       <div class="section-label"><h3>Diagnostics</h3><span class="hint" id="diagHint">live</span></div>
-      <div class="card surface">
+      <div class="card flat">
         <div class="diag-row"><span class="diag-key">Input device</span><span class="diag-val" id="diagDevice">—</span></div>
         <div class="diag-row"><span class="diag-key">Auto gain control</span><span class="diag-val" id="diagAgc">—</span></div>
         <div class="diag-row"><span class="diag-key">Noise suppression</span><span class="diag-val" id="diagNs">—</span></div>
@@ -1234,6 +1288,7 @@ function updateSafeTime() {
   setDiag('statSafe', safeStr);
   setDiag('statLimit', limitVal + ' dB');
   document.getElementById('limitDesc').textContent = 'Safe for about ' + safeStr + ' at this level.';
+  document.getElementById('limitDescLive').textContent = 'Safe for about ' + safeStr + ' at this level.';
   document.getElementById('safeTimeText').textContent = safeHours >= 2 ? 'Safe at this level' : '⚠️ Limit your exposure time';
 }
 
@@ -1341,13 +1396,24 @@ document.getElementById('volSlider').addEventListener('input', function() {
   if (gainNode) gainNode.gain.value = this.value / 100;
 });
 
-document.getElementById('limitSlider').addEventListener('input', function() {
-  const v = parseInt(this.value);
+// Limiter cap has two controls now — the Settings slider and the Live-tab
+// popover slider — kept in sync so either one is the source of truth.
+function syncLimitControls(v, source) {
   document.getElementById('limitFill').style.width = ((v-60)/45*100) + '%';
   document.getElementById('limitLabel').textContent = v + ' dB';
   document.getElementById('limitMarker').style.left = ((v-50)/60*100) + '%';
-  document.getElementById('limitValLabel').textContent = v + 'dB';
+  document.getElementById('lcVal').textContent = v + 'dB';
+  document.getElementById('limitFillLive').style.width = ((v-60)/45*100) + '%';
+  if (source !== 'settings') document.getElementById('limitSlider').value = v;
+  if (source !== 'live') document.getElementById('limitSliderLive').value = v;
   updateLimiter(); updateSafeTime();
+}
+
+document.getElementById('limitSlider').addEventListener('input', function() {
+  syncLimitControls(parseInt(this.value), 'settings');
+});
+document.getElementById('limitSliderLive').addEventListener('input', function() {
+  syncLimitControls(parseInt(this.value), 'live');
 });
 
 document.getElementById('agcToggle').addEventListener('click', function() {
@@ -1394,11 +1460,28 @@ document.getElementById('logClearBtn').addEventListener('click', function() {
   setDiag('diagLogCount', '0 samples');
 });
 
-document.getElementById('limiterToggle').addEventListener('click', function() {
-  this.classList.toggle('on');
-  document.getElementById('limReveal').classList.toggle('open', this.classList.contains('on'));
+// Limiter on/off, also mirrored between Settings and the Live popover
+function syncLimiterToggle(on, source) {
+  document.getElementById('limiterToggle').classList.toggle('on', on);
+  document.getElementById('limiterToggleLive').classList.toggle('on', on);
+  document.getElementById('limitChip').classList.toggle('off', !on);
+  document.getElementById('limReveal').classList.toggle('open', on);
   updateLimiter();
+}
+document.getElementById('limiterToggle').addEventListener('click', function() {
+  syncLimiterToggle(!this.classList.contains('on'), 'settings');
 });
+document.getElementById('limiterToggleLive').addEventListener('click', function() {
+  syncLimiterToggle(!this.classList.contains('on'), 'live');
+});
+
+// Limiter chip on the Live meter — tap to open the popover in place
+document.getElementById('limitChip').addEventListener('click', function(e) {
+  e.stopPropagation();
+  document.getElementById('limitPop').classList.toggle('open');
+});
+document.getElementById('limitPop').addEventListener('click', (e) => e.stopPropagation());
+document.addEventListener('click', () => document.getElementById('limitPop').classList.remove('open'));
 
 document.getElementById('showModeToggle').addEventListener('click', async function() {
   this.classList.toggle('on');
