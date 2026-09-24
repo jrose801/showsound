@@ -14,12 +14,32 @@
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
-    --bg: #0A0A0F; --panel: #13131F; --panel2: #1C1C2E; --border: #2A2A40;
-    --cyan: #00E5FF; --cyan-dim: rgba(0,229,255,0.15); --cyan-glow: rgba(0,229,255,0.4);
-    --amber: #FF9500; --amber-dim: rgba(255,149,0,0.15);
-    --red: #FF3B30; --green: #30D158;
-    --text: #F0F0FF; --text-dim: #8888AA; --text-muted: #44445A;
-    --radius: 16px; --radius-sm: 10px;
+    /* Machined-panel palette. Monochrome by design: white rim-light reads
+       far better than a color accent in a dark venue. Cyan is reserved
+       strictly for live/active state. */
+    --bg:        #1B1E21;
+    --panel:     #24282C;
+    --panel-hi:  #2C3136;
+    --panel-lo:  #16191B;
+    --well:      #141719;
+    --edge:      rgba(255,255,255,0.07);
+    --edge-hi:   rgba(255,255,255,0.14);
+    --shadow:    rgba(0,0,0,0.72);
+
+    --metal-1: #FAFAFB;
+    --metal-2: #C9CDD2;
+    --metal-3: #8B9196;
+    --metal-4: #565C61;
+
+    --glow:    rgba(255,255,255,0.92);
+    --glow-soft: rgba(255,255,255,0.28);
+
+    --cyan: #00E5FF; --cyan-dim: rgba(0,229,255,0.14); --cyan-glow: rgba(0,229,255,0.45);
+    --amber: #FF9F2E; --amber-dim: rgba(255,159,46,0.14);
+    --red: #FF4438; --green: #45D97A;
+
+    --text: #EDEFF1; --text-dim: #9AA2A8; --text-muted: #5A6167;
+    --radius: 18px; --radius-sm: 12px;
   }
   html, body {
     background: var(--bg); color: var(--text);
@@ -29,234 +49,380 @@
     overscroll-behavior: none;
   }
 
-  /* APP SHELL — fixed header, flexible middle, fixed nav. Nothing scrolls the shell. */
-  .app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
+  .app { display: flex; flex-direction: column; height: 100vh; height: 100dvh;
+         background:
+           radial-gradient(120% 60% at 50% -10%, #272C31 0%, transparent 60%),
+           var(--bg); }
 
+  /* ── SURFACES ───────────────────────────────── */
+  /* Raised machined panel */
+  .surface {
+    background: linear-gradient(180deg, var(--panel-hi) 0%, var(--panel) 46%, var(--panel-lo) 100%);
+    border-radius: var(--radius);
+    box-shadow:
+      0 1px 0 var(--edge-hi) inset,
+      0 -1px 0 rgba(0,0,0,0.5) inset,
+      0 10px 22px -8px var(--shadow),
+      0 2px 4px rgba(0,0,0,0.4);
+  }
+  /* Recessed well — anything a control sits *inside* */
+  .well {
+    background: linear-gradient(180deg, var(--well) 0%, #1A1E21 100%);
+    border-radius: 999px;
+    box-shadow:
+      0 2px 4px rgba(0,0,0,0.75) inset,
+      0 -1px 0 var(--edge) inset;
+  }
+
+  /* ── TOP BAR ────────────────────────────────── */
   .topbar {
     flex-shrink: 0;
     display: flex; align-items: center; justify-content: space-between;
-    padding: max(12px, env(safe-area-inset-top)) 20px 10px;
-    background: var(--bg); border-bottom: 1px solid var(--border);
+    padding: max(12px, env(safe-area-inset-top)) 20px 12px;
+    border-bottom: 1px solid rgba(0,0,0,0.55);
+    box-shadow: 0 1px 0 var(--edge);
   }
-  .logo { font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
-  .logo span { color: var(--cyan); }
+  .logo { font-family: 'Space Grotesk', sans-serif; font-size: 19px; font-weight: 700; letter-spacing: -0.4px;
+          text-shadow: 0 1px 0 rgba(0,0,0,0.7); }
+  .logo span { color: var(--text-dim); }
   .status-pill {
-    display: flex; align-items: center; gap: 6px;
-    background: var(--panel2); border: 1px solid var(--border);
-    border-radius: 20px; padding: 5px 12px; font-size: 12px; font-weight: 500;
-    color: var(--text-dim); transition: all 0.2s;
+    display: flex; align-items: center; gap: 7px;
+    padding: 6px 13px; font-size: 11px; font-weight: 600;
+    letter-spacing: .6px; text-transform: uppercase;
+    color: var(--text-muted);
+    border-radius: 999px;
+    background: linear-gradient(180deg, #1A1D20, #202427);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.6) inset, 0 1px 0 var(--edge);
+    transition: color .25s;
   }
-  .status-pill.active { border-color: var(--cyan); color: var(--cyan); background: var(--cyan-dim); }
-  .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-muted); transition: all 0.2s; }
-  .status-pill.active .status-dot { background: var(--cyan); box-shadow: 0 0 6px var(--cyan); animation: pulse 1.5s infinite; }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .status-pill.active { color: var(--cyan); }
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-muted); transition: all .25s; }
+  .status-pill.active .status-dot { background: var(--cyan); box-shadow: 0 0 8px var(--cyan); animation: pulse 1.6s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
 
   .tab-host { flex: 1; position: relative; min-height: 0; }
-  .tab-panel {
-    position: absolute; inset: 0;
-    display: none; flex-direction: column;
-    overflow-y: auto; -webkit-overflow-scrolling: touch;
-  }
+  .tab-panel { position: absolute; inset: 0; display: none; flex-direction: column;
+               overflow-y: auto; -webkit-overflow-scrolling: touch; }
   .tab-panel.active { display: flex; }
 
+  /* ── NAV ────────────────────────────────────── */
   .nav-bar {
     flex-shrink: 0;
-    background: var(--panel); border-top: 1px solid var(--border);
+    background: linear-gradient(180deg, #23272B, #191C1F);
+    box-shadow: 0 -1px 0 rgba(0,0,0,0.6), 0 -2px 0 var(--edge) inset;
     display: grid; grid-template-columns: repeat(4, 1fr);
-    padding: 8px 0 max(8px, env(safe-area-inset-bottom));
+    padding: 9px 0 max(9px, env(safe-area-inset-bottom));
   }
-  .nav-item { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px; cursor: pointer; color: var(--text-muted); transition: color 0.15s; }
-  .nav-item.active { color: var(--cyan); }
-  .nav-item svg { width: 22px; height: 22px; }
-  .nav-item span { font-size: 10px; font-weight: 500; letter-spacing: 0.3px; }
+  .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 5px;
+              color: var(--text-muted); transition: color .18s; cursor: pointer; }
+  .nav-item.active { color: var(--text); }
+  .nav-item.active svg { filter: drop-shadow(0 0 5px var(--glow-soft)); }
+  .nav-item svg { width: 21px; height: 21px; }
+  .nav-item span { font-size: 9px; font-weight: 600; letter-spacing: .7px; text-transform: uppercase; }
 
-  /* PERMISSION OVERLAY */
+  /* ── OVERLAYS ───────────────────────────────── */
   .permission-overlay {
-    position: fixed; inset: 0; background: rgba(10,10,15,0.97);
+    position: fixed; inset: 0; background: radial-gradient(90% 60% at 50% 30%, #23282C, #121416);
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: 20px; z-index: 300; padding: 32px; text-align: center;
   }
   .permission-overlay.hidden { display: none; }
-  .perm-icon { font-size: 52px; }
-  .perm-title { font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; }
-  .perm-body { font-size: 14px; color: var(--text-dim); line-height: 1.6; max-width: 280px; }
+  .perm-icon { font-size: 50px; filter: drop-shadow(0 6px 14px rgba(0,0,0,.7)); }
+  .perm-title { font-family: 'Space Grotesk', sans-serif; font-size: 25px; font-weight: 700; letter-spacing: -.5px; }
+  .perm-body { font-size: 14px; color: var(--text-dim); line-height: 1.65; max-width: 290px; }
   .perm-btn {
-    background: var(--cyan); color: #000; border: none; border-radius: 28px;
-    padding: 14px 32px; font-size: 16px; font-weight: 700; cursor: pointer;
-    font-family: 'Space Grotesk', sans-serif; letter-spacing: 0.3px;
-    box-shadow: 0 0 24px var(--cyan-glow);
+    border: none; cursor: pointer; color: #15181A;
+    font-family: 'Space Grotesk', sans-serif; font-size: 15px; font-weight: 700; letter-spacing: .5px;
+    padding: 15px 38px; border-radius: 999px;
+    background: linear-gradient(180deg, var(--metal-1) 0%, var(--metal-2) 52%, var(--metal-3) 100%);
+    box-shadow: 0 1px 0 rgba(255,255,255,.85) inset, 0 -2px 3px rgba(0,0,0,.28) inset,
+                0 8px 20px -6px rgba(0,0,0,.8), 0 0 26px var(--glow-soft);
   }
-  .perm-note { font-size: 12px; color: var(--text-muted); max-width: 260px; line-height: 1.5; }
+  .perm-btn:active { transform: translateY(1px); }
+  .perm-note { font-size: 11.5px; color: var(--text-muted); max-width: 270px; line-height: 1.55; }
 
-  /* SHOW MODE MODAL */
-  .modal-scrim {
-    position: fixed; inset: 0; background: rgba(10,10,15,0.85);
-    display: none; align-items: center; justify-content: center; z-index: 250; padding: 28px;
-  }
+  .modal-scrim { position: fixed; inset: 0; background: rgba(12,14,16,.88);
+                 display: none; align-items: center; justify-content: center; z-index: 250; padding: 28px; }
   .modal-scrim.show { display: flex; }
-  .modal {
-    background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
-    padding: 24px; max-width: 320px; text-align: center;
-  }
+  .modal { max-width: 330px; padding: 26px; text-align: center;
+           background: linear-gradient(180deg, var(--panel-hi), var(--panel-lo));
+           border-radius: var(--radius);
+           box-shadow: 0 1px 0 var(--edge-hi) inset, 0 20px 50px -12px #000; }
   .modal h4 { font-family: 'Space Grotesk', sans-serif; font-size: 18px; margin-bottom: 10px; }
-  .modal p { font-size: 13px; color: var(--text-dim); line-height: 1.6; margin-bottom: 18px; }
-  .modal button {
-    background: var(--cyan); color: #000; border: none; border-radius: 22px;
-    padding: 11px 28px; font-size: 14px; font-weight: 700; cursor: pointer;
-    font-family: 'Space Grotesk', sans-serif;
+  .modal p { font-size: 13px; color: var(--text-dim); line-height: 1.65; margin-bottom: 20px; }
+  .modal button { border: none; cursor: pointer; color: #15181A; font-weight: 700; font-size: 14px;
+                  font-family: 'Space Grotesk', sans-serif; padding: 11px 30px; border-radius: 999px;
+                  background: linear-gradient(180deg, var(--metal-1), var(--metal-3));
+                  box-shadow: 0 1px 0 rgba(255,255,255,.8) inset, 0 6px 14px -4px rgba(0,0,0,.8); }
+
+  .error-banner { background: rgba(255,68,56,.12); border: 1px solid rgba(255,68,56,.5);
+                  margin: 0 0 6px; border-radius: var(--radius-sm); padding: 11px 14px;
+                  font-size: 12.5px; color: #FF8078; display: none; }
+
+  /* ── LIVE ───────────────────────────────────── */
+  .live-wrap { display: flex; flex-direction: column; height: 100%; padding: 12px 14px 6px; gap: 12px; }
+
+  .meter-card { position: relative; padding: 13px 15px 14px; flex-shrink: 0; }
+  #waveCanvas { width: 100%; height: 58px; display: block; }
+  .db-readout { position: absolute; top: 13px; right: 17px; text-align: right;
+                font-size: 9px; font-weight: 700; color: var(--text-muted); letter-spacing: 1.2px; }
+  .db-readout .val { font-family: 'Space Grotesk', sans-serif; font-size: 27px; font-weight: 700;
+                     color: var(--metal-1); display: block; line-height: 1;
+                     text-shadow: 0 0 14px var(--glow-soft); transition: color .3s, text-shadow .3s; }
+  .db-readout .val.warn { color: var(--amber); text-shadow: 0 0 14px rgba(255,159,46,.5); }
+  .db-readout .val.danger { color: var(--red); text-shadow: 0 0 14px rgba(255,68,56,.55); }
+  .in-readout { position: absolute; top: 15px; left: 17px; font-size: 9px; color: var(--text-muted); letter-spacing: 1.2px; font-weight: 700; }
+  .in-readout b { font-family: 'Space Grotesk', sans-serif; font-size: 12px; color: var(--text-dim); font-weight: 700; }
+  .in-readout b.hot { color: var(--green); text-shadow: 0 0 9px rgba(69,217,122,.5); }
+  .in-readout b.low { color: var(--amber); }
+
+  .db-meter-wrap { display: flex; align-items: center; gap: 11px; margin-top: 11px; }
+  .db-track { flex: 1; height: 9px; position: relative; overflow: hidden; }
+  .db-fill { height: 100%; width: 0%; border-radius: 999px; transition: width .05s linear;
+             background: linear-gradient(90deg, var(--metal-3) 0%, var(--metal-1) 58%, var(--amber) 80%, var(--red) 100%);
+             box-shadow: 0 0 11px var(--glow-soft); }
+  .db-limit-marker { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--amber);
+                     border-radius: 1px; box-shadow: 0 0 6px var(--amber); }
+  .limit-val { font-family: 'Space Grotesk', sans-serif; font-size: 10px; color: var(--amber);
+               font-weight: 700; width: 42px; text-align: right; letter-spacing: .4px; }
+
+  /* ── ROTARY KNOB ────────────────────────────── */
+  .knob-card { flex-shrink: 0; padding: 16px 18px 18px; display: flex; align-items: center; gap: 20px; }
+  .knob-stage { position: relative; width: 116px; height: 116px; flex-shrink: 0; touch-action: none; }
+  .knob-ring { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(135deg); }
+  .knob-ring .trk { fill: none; stroke: rgba(0,0,0,.55); stroke-width: 3; }
+  .knob-ring .val { fill: none; stroke: var(--metal-1); stroke-width: 3; stroke-linecap: round;
+                    filter: drop-shadow(0 0 5px var(--glow)); transition: stroke-dashoffset .06s linear; }
+  .knob-ticks { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .knob-ticks line { stroke: rgba(255,255,255,.17); stroke-width: 1.6; stroke-linecap: round; }
+  .knob {
+    position: absolute; left: 14px; top: 14px; width: 88px; height: 88px; border-radius: 50%;
+    background:
+      radial-gradient(circle at 50% 42%, #F4F5F6 0%, #D3D7DB 38%, #9BA1A7 66%, #6E747A 100%);
+    box-shadow:
+      0 1px 0 rgba(255,255,255,.9) inset,
+      0 -3px 6px rgba(0,0,0,.3) inset,
+      0 9px 20px -5px rgba(0,0,0,.85),
+      0 0 0 1px rgba(0,0,0,.45);
+    cursor: grab;
   }
-
-  .error-banner {
-    background: rgba(255,59,48,0.15); border: 1px solid var(--red);
-    margin: 10px 12px; border-radius: var(--radius-sm);
-    padding: 10px 14px; font-size: 13px; color: #FF6B62; display: none;
+  /* brushed-metal sheen */
+  .knob::before {
+    content: ''; position: absolute; inset: 11px; border-radius: 50%;
+    background: conic-gradient(from 0deg,
+      rgba(255,255,255,.55), rgba(255,255,255,.05) 12%, rgba(255,255,255,.42) 25%,
+      rgba(255,255,255,.04) 38%, rgba(255,255,255,.5) 50%, rgba(255,255,255,.05) 62%,
+      rgba(255,255,255,.4) 75%, rgba(255,255,255,.04) 88%, rgba(255,255,255,.55));
+    mix-blend-mode: overlay; opacity: .75;
   }
-
-  /* ── LIVE TAB ── */
-  .live-wrap { display: flex; flex-direction: column; height: 100%; padding: 10px 12px 4px; gap: 10px; }
-
-  .meter-card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; position: relative; flex-shrink: 0; }
-  #waveCanvas { width: 100%; height: 64px; display: block; }
-  .db-readout { position: absolute; top: 12px; right: 16px; font-family: 'Space Grotesk', sans-serif; font-size: 10px; font-weight: 600; color: var(--text-dim); letter-spacing: 0.5px; text-align: right; }
-  .db-readout .val { font-size: 24px; font-weight: 700; color: var(--green); display: block; line-height: 1; transition: color 0.3s; }
-  .db-readout .val.warn { color: var(--amber); }
-  .db-readout .val.danger { color: var(--red); }
-
-  .db-meter-wrap { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
-  .db-track { flex: 1; height: 6px; background: var(--panel2); border-radius: 3px; overflow: hidden; position: relative; }
-  .db-fill { height: 100%; border-radius: 3px; width: 0%; transition: width 0.05s linear; background: linear-gradient(90deg, var(--green) 0%, var(--green) 55%, var(--amber) 75%, var(--red) 100%); }
-  .db-limit-marker { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--amber); border-radius: 1px; }
-  .limit-val { font-size: 11px; color: var(--amber); font-weight: 600; width: 40px; text-align: right; }
-
-  /* Big volume — the one thing you reach for mid-show */
-  .vol-card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px 20px; flex-shrink: 0; }
-  .vol-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; }
-  .vol-head h3 { font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 600; color: var(--text-dim); letter-spacing: 1px; text-transform: uppercase; }
-  .vol-head .num { font-family: 'Space Grotesk', sans-serif; font-size: 28px; font-weight: 700; color: var(--cyan); line-height: 1; }
-  .vol-track { height: 14px; background: var(--panel2); border-radius: 7px; position: relative; }
-  .vol-fill { height: 100%; border-radius: 7px; background: linear-gradient(90deg, rgba(0,229,255,0.5), var(--cyan)); width: 80%; }
-  input[type=range].vol-slider {
-    -webkit-appearance: none; appearance: none;
-    position: absolute; top: 50%; left: 0; width: 100%; height: 44px;
-    transform: translateY(-50%); background: transparent; outline: none; margin: 0;
-    touch-action: none;
+  .knob::after {
+    content: ''; position: absolute; inset: 11px; border-radius: 50%;
+    box-shadow: 0 1px 2px rgba(255,255,255,.5) inset, 0 -1px 3px rgba(0,0,0,.35) inset;
   }
-  input[type=range].vol-slider::-webkit-slider-thumb {
-    -webkit-appearance: none; width: 30px; height: 30px; border-radius: 50%;
-    background: var(--cyan); border: 3px solid var(--bg); box-shadow: 0 0 12px var(--cyan-glow);
-  }
+  .knob-dot { position: absolute; left: 50%; top: 8px; width: 6px; height: 6px; margin-left: -3px;
+              border-radius: 50%; background: #23272A; box-shadow: 0 1px 1px rgba(255,255,255,.5); z-index: 2; }
+  .knob-stage.active .knob { cursor: grabbing; }
+  .knob-stage.active .knob-ring .val { filter: drop-shadow(0 0 9px var(--glow)); }
 
+  .knob-meta { flex: 1; min-width: 0; }
+  .knob-meta h3 { font-family: 'Space Grotesk', sans-serif; font-size: 10px; font-weight: 700;
+                  color: var(--text-muted); letter-spacing: 1.6px; text-transform: uppercase; margin-bottom: 5px; }
+  .knob-meta .num { font-family: 'Space Grotesk', sans-serif; font-size: 46px; font-weight: 700;
+                    line-height: 1; color: var(--metal-1); text-shadow: 0 0 20px var(--glow-soft); }
+  .knob-meta .unit { font-size: 11px; color: var(--text-muted); letter-spacing: 1px; margin-top: 6px; }
+
+  /* ── PRESET CHIPS ───────────────────────────── */
   .preset-row { flex-shrink: 0; }
-  .row-label { font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 600; color: var(--text-muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
-  .preset-scroll { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+  .row-label { font-family: 'Space Grotesk', sans-serif; font-size: 9px; font-weight: 700;
+               color: var(--text-muted); letter-spacing: 1.6px; text-transform: uppercase; margin-bottom: 9px; }
+  .preset-scroll { display: flex; gap: 9px; overflow-x: auto; padding: 2px 0 5px; scrollbar-width: none; }
   .preset-scroll::-webkit-scrollbar { display: none; }
-  .preset-chip { flex-shrink: 0; padding: 9px 16px; border-radius: 20px; font-size: 13px; font-weight: 500; background: var(--panel); border: 1px solid var(--border); color: var(--text-dim); cursor: pointer; transition: all 0.15s; white-space: nowrap; }
-  .preset-chip.active { background: var(--cyan-dim); border-color: var(--cyan); color: var(--cyan); }
-  .preset-chip:active { transform: scale(0.96); }
-
-  /* Hold-style action buttons — big targets, no accidental taps */
-  .action-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; flex-shrink: 0; }
-  .action-btn {
-    position: relative; overflow: hidden;
-    background: var(--panel); border: 1.5px solid var(--border); border-radius: var(--radius);
-    padding: 14px 10px; text-align: center; cursor: pointer;
-    user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
-    touch-action: none; transition: border-color .15s, background .15s;
+  .preset-chip {
+    flex-shrink: 0; padding: 10px 17px; border-radius: 999px; white-space: nowrap;
+    font-size: 12px; font-weight: 600; letter-spacing: .3px; color: var(--text-dim); cursor: pointer;
+    background: linear-gradient(180deg, var(--panel-hi), var(--panel-lo));
+    box-shadow: 0 1px 0 var(--edge) inset, 0 3px 7px -2px rgba(0,0,0,.7);
+    transition: all .16s;
   }
-  .action-btn .lbl { font-family: 'Space Grotesk', sans-serif; font-size: 14px; font-weight: 700; letter-spacing: .4px; position: relative; z-index: 2; }
-  .action-btn .sub { font-size: 10px; color: var(--text-muted); margin-top: 3px; position: relative; z-index: 2; }
-  .action-btn .fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0%; background: var(--cyan-dim); z-index: 1; transition: width .05s linear; }
-  .action-btn.armed { border-color: var(--cyan); background: var(--cyan-dim); }
-  .action-btn.duck.armed { border-color: var(--amber); background: var(--amber-dim); }
-  .action-btn.done { border-color: var(--green); }
-  .action-btn.done .lbl { color: var(--green); }
+  .preset-chip.active {
+    color: #15181A;
+    background: linear-gradient(180deg, var(--metal-1), var(--metal-3));
+    box-shadow: 0 1px 0 rgba(255,255,255,.85) inset, 0 0 18px var(--glow-soft), 0 3px 8px -2px rgba(0,0,0,.8);
+  }
+  .preset-chip:active { transform: scale(.96); }
 
-  .power-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 78px; }
-  .power-btn { width: 58px; height: 58px; border-radius: 50%; border: 2.5px solid var(--border); background: var(--panel); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; }
-  .power-btn.active { border-color: var(--cyan); background: var(--cyan-dim); box-shadow: 0 0 24px var(--cyan-glow), inset 0 0 16px rgba(0,229,255,0.1); }
-  .power-hint { font-size: 12px; color: var(--text-muted); }
+  /* ── HOLD BUTTONS ───────────────────────────── */
+  .action-row { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; flex-shrink: 0; }
+  .action-btn {
+    position: relative; overflow: hidden; text-align: center; cursor: pointer;
+    padding: 15px 10px; border-radius: var(--radius-sm);
+    user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: none;
+    background: linear-gradient(180deg, var(--panel-hi), var(--panel-lo));
+    box-shadow: 0 1px 0 var(--edge-hi) inset, 0 -1px 0 rgba(0,0,0,.5) inset, 0 6px 14px -5px rgba(0,0,0,.8);
+    transition: box-shadow .14s, transform .08s;
+  }
+  .action-btn .lbl { font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700;
+                     letter-spacing: 1.3px; position: relative; z-index: 2; }
+  .action-btn .sub { font-size: 9px; color: var(--text-muted); margin-top: 4px;
+                     letter-spacing: .5px; position: relative; z-index: 2; }
+  .action-btn .fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0%; z-index: 1;
+                      background: linear-gradient(90deg, rgba(255,255,255,.05), rgba(255,255,255,.16));
+                      transition: width .05s linear; }
+  .action-btn.armed { transform: translateY(1px);
+    box-shadow: 0 3px 8px rgba(0,0,0,.8) inset, 0 0 22px var(--glow-soft); }
+  .action-btn.armed .lbl { color: var(--metal-1); text-shadow: 0 0 10px var(--glow); }
+  .action-btn.duck.armed { box-shadow: 0 3px 8px rgba(0,0,0,.8) inset, 0 0 22px rgba(255,159,46,.45); }
+  .action-btn.duck.armed .lbl { color: var(--amber); text-shadow: 0 0 10px var(--amber); }
+  .action-btn.done .lbl { color: var(--green); text-shadow: 0 0 10px rgba(69,217,122,.7); }
 
-  /* ── SHARED CARDS (Presets / History / Settings) ── */
-  .section-label { padding: 16px 20px 8px; display: flex; align-items: center; justify-content: space-between; }
-  .section-label h3 { font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 600; color: var(--text-dim); letter-spacing: 1px; text-transform: uppercase; }
-  .section-label .hint { font-size: 11px; color: var(--text-muted); }
-  .card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin: 0 12px 10px; }
-  .card-title { font-size: 11px; font-weight: 600; color: var(--text-muted); letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
-  .card-title .sub { font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--text-dim); }
-  .card-desc { font-size: 12px; color: var(--text-dim); line-height: 1.5; margin-top: 8px; }
+  /* ── POWER ──────────────────────────────────── */
+  .power-wrap { flex: 1; display: flex; flex-direction: column; align-items: center;
+                justify-content: center; gap: 9px; min-height: 84px; }
+  .power-btn {
+    width: 62px; height: 62px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: all .22s;
+    background: radial-gradient(circle at 50% 36%, #33383D, #1D2023 70%);
+    box-shadow: 0 1px 0 var(--edge-hi) inset, 0 -2px 5px rgba(0,0,0,.55) inset,
+                0 8px 18px -5px rgba(0,0,0,.85);
+  }
+  .power-btn.active {
+    background: radial-gradient(circle at 50% 36%, #3B4146, #212528 70%);
+    box-shadow: 0 1px 0 rgba(255,255,255,.2) inset, 0 -2px 5px rgba(0,0,0,.5) inset,
+                0 0 26px var(--cyan-glow), 0 8px 18px -5px rgba(0,0,0,.85);
+  }
+  .power-btn.active svg { filter: drop-shadow(0 0 7px var(--cyan)); }
+  .power-hint { font-size: 10.5px; color: var(--text-muted); letter-spacing: .7px; }
 
-  .dial-track { height: 4px; background: var(--panel2); border-radius: 2px; position: relative; }
-  .dial-fill { height: 100%; border-radius: 2px; background: var(--cyan); }
-  .dial-fill.amber { background: var(--amber); }
+  /* ── CARDS / SECTIONS ───────────────────────── */
+  .section-label { padding: 18px 20px 9px; display: flex; align-items: center; justify-content: space-between; }
+  .section-label h3 { font-family: 'Space Grotesk', sans-serif; font-size: 10px; font-weight: 700;
+                      color: var(--text-muted); letter-spacing: 1.7px; text-transform: uppercase; }
+  .section-label .hint { font-family: 'Space Grotesk', sans-serif; font-size: 10px;
+                         color: var(--text-dim); letter-spacing: .6px; }
+  .card { padding: 17px; margin: 0 14px 11px; }
+  .card-title { font-family: 'Space Grotesk', sans-serif; font-size: 9.5px; font-weight: 700;
+                color: var(--text-muted); letter-spacing: 1.4px; text-transform: uppercase;
+                margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
+  .card-title .sub { font-size: 12px; font-weight: 700; text-transform: none; letter-spacing: .3px;
+                     color: var(--metal-1); text-shadow: 0 0 10px var(--glow-soft); }
+  .card-desc { font-size: 11.5px; color: var(--text-muted); line-height: 1.6; margin-top: 10px; }
+
+  /* ── HORIZONTAL FADER ───────────────────────── */
+  .dial-track { height: 10px; position: relative; }
+  .dial-track.well { border-radius: 999px; }
+  .dial-fill { height: 100%; border-radius: 999px;
+               background: linear-gradient(90deg, var(--metal-4), var(--metal-1));
+               box-shadow: 0 0 12px var(--glow-soft); }
+  .dial-fill.amber { background: linear-gradient(90deg, #8A5A1E, var(--amber));
+                     box-shadow: 0 0 12px rgba(255,159,46,.5); }
   input[type=range].dial-slider {
     -webkit-appearance: none; appearance: none;
-    position: absolute; top: 50%; left: 0; width: 100%; height: 36px;
+    position: absolute; top: 50%; left: 0; width: 100%; height: 40px;
     transform: translateY(-50%); background: transparent; outline: none; margin: 0;
     touch-action: none;
   }
   input[type=range].dial-slider::-webkit-slider-thumb {
-    -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%;
-    background: var(--cyan); border: 2px solid var(--bg); box-shadow: 0 0 6px var(--cyan-glow);
+    -webkit-appearance: none; width: 26px; height: 26px; border-radius: 50%;
+    background: radial-gradient(circle at 50% 35%, #FBFBFC, #C4C9CE 45%, #7D8388 100%);
+    box-shadow: 0 1px 0 rgba(255,255,255,.9) inset, 0 -2px 4px rgba(0,0,0,.3) inset,
+                0 4px 10px -2px rgba(0,0,0,.85), 0 0 14px var(--glow-soft);
   }
 
-  .toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
-  .toggle-label { font-size: 14px; color: var(--text); }
-  .toggle { width: 44px; height: 26px; background: var(--panel2); border-radius: 13px; position: relative; cursor: pointer; border: 1px solid var(--border); transition: background 0.2s; flex-shrink: 0; }
-  .toggle.on { background: var(--cyan); border-color: var(--cyan); }
-  .toggle.on.amber-toggle { background: var(--amber); border-color: var(--amber); }
-  .toggle::after { content: ''; position: absolute; width: 20px; height: 20px; border-radius: 50%; background: white; top: 2px; left: 2px; transition: left 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.4); }
-  .toggle.on::after { left: 20px; }
+  /* ── TOGGLE SWITCH ──────────────────────────── */
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .toggle-label { font-size: 13.5px; color: var(--text); font-weight: 500; }
+  .toggle {
+    width: 50px; height: 28px; border-radius: 999px; position: relative; cursor: pointer; flex-shrink: 0;
+    background: linear-gradient(180deg, #141719, #1E2225);
+    box-shadow: 0 2px 5px rgba(0,0,0,.8) inset, 0 -1px 0 var(--edge) inset;
+    transition: box-shadow .22s;
+  }
+  .toggle.on { box-shadow: 0 2px 5px rgba(0,0,0,.6) inset, 0 0 18px var(--glow-soft); }
+  .toggle.on.amber-toggle { box-shadow: 0 2px 5px rgba(0,0,0,.6) inset, 0 0 18px rgba(255,159,46,.45); }
+  .toggle::after {
+    content: ''; position: absolute; width: 22px; height: 22px; border-radius: 50%; top: 3px; left: 3px;
+    background: radial-gradient(circle at 50% 35%, #FAFAFB, #BFC4C9 50%, #787E83 100%);
+    box-shadow: 0 1px 0 rgba(255,255,255,.85) inset, 0 3px 7px -1px rgba(0,0,0,.8);
+    transition: left .22s cubic-bezier(.4,1.4,.5,1);
+  }
+  .toggle.on::after { left: 25px; }
 
-  /* Progressive disclosure — details only appear once the feature is on */
-  .reveal { max-height: 0; overflow: hidden; opacity: 0; transition: max-height 0.25s ease, opacity 0.2s ease, margin 0.25s ease; }
-  .reveal.open { max-height: 340px; opacity: 1; margin-top: 18px; }
+  .reveal { max-height: 0; overflow: hidden; opacity: 0;
+            transition: max-height .28s ease, opacity .22s ease, margin .28s ease; }
+  .reveal.open { max-height: 420px; opacity: 1; margin-top: 20px; }
+  .adv-toggle { font-family: 'Space Grotesk', sans-serif; font-size: 10px; color: var(--text-dim);
+                cursor: pointer; user-select: none; -webkit-user-select: none; margin-top: 18px;
+                display: inline-block; letter-spacing: 1.1px; text-transform: uppercase; }
 
-  .adv-toggle { font-size: 11px; color: var(--cyan); cursor: pointer; user-select: none; -webkit-user-select: none; margin-top: 16px; display: inline-block; }
-
-  /* ── EQ (Presets tab) ── */
-  .eq-panel { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); margin: 0 12px 10px; padding: 0 14px; }
-  .eq-grid { display: grid; grid-template-columns: repeat(5, 1fr); padding: 12px 0 4px; }
-  .eq-band { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 2px; border-right: 1px solid var(--border); }
-  .eq-band:last-child { border-right: none; }
-  .eq-band-val { font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 700; color: var(--cyan); min-height: 18px; line-height: 1; }
-  .eq-slider-wrap { height: 132px; display: flex; align-items: center; justify-content: center; position: relative; }
-  .eq-slider-wrap::before { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: var(--border); transform: translateX(-50%); }
+  /* ── EQ FADERS ──────────────────────────────── */
+  .eq-panel { margin: 0 14px 11px; padding: 0 12px; }
+  .eq-grid { display: grid; grid-template-columns: repeat(5, 1fr); padding: 16px 0 6px; }
+  .eq-band { display: flex; flex-direction: column; align-items: center; gap: 9px; padding: 6px 2px;
+             position: relative; }
+  .eq-band::after { content: ''; position: absolute; right: 0; top: 10%; bottom: 10%; width: 1px;
+                    background: linear-gradient(180deg, transparent, rgba(0,0,0,.6), transparent); }
+  .eq-band:last-child::after { display: none; }
+  .eq-band-val { font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700;
+                 color: var(--metal-1); min-height: 16px; line-height: 1; letter-spacing: .3px;
+                 text-shadow: 0 0 9px var(--glow-soft); }
+  .eq-slider-wrap { height: 136px; display: flex; align-items: center; justify-content: center; position: relative; }
+  /* recessed vertical track */
+  .eq-slider-wrap::before {
+    content: ''; position: absolute; left: 50%; top: 4px; bottom: 4px; width: 9px; margin-left: -4.5px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #131618, #1B1F22);
+    box-shadow: 0 2px 5px rgba(0,0,0,.8) inset, 0 -1px 0 var(--edge) inset;
+  }
+  /* centre detent line */
+  .eq-slider-wrap::after {
+    content: ''; position: absolute; left: 50%; top: 50%; width: 19px; height: 1px; margin-left: -9.5px;
+    background: rgba(255,255,255,.18);
+  }
   input[type=range].eq-slider {
     -webkit-appearance: none; appearance: none;
     writing-mode: vertical-lr; direction: rtl;
-    width: 40px; height: 124px; background: transparent; outline: none;
-    touch-action: none; /* stops the slider from dragging the page */
+    width: 44px; height: 128px; background: transparent; outline: none;
+    touch-action: none; position: relative; z-index: 2;
   }
-  input[type=range].eq-slider::-webkit-slider-runnable-track { width: 4px; background: var(--panel2); border-radius: 2px; }
+  input[type=range].eq-slider::-webkit-slider-runnable-track { width: 9px; background: transparent; }
   input[type=range].eq-slider::-webkit-slider-thumb {
-    -webkit-appearance: none; width: 24px; height: 24px; border-radius: 50%;
-    background: var(--cyan); box-shadow: 0 0 8px var(--cyan-glow);
-    border: 2px solid var(--bg); margin-left: -10px;
+    -webkit-appearance: none; width: 34px; height: 21px; border-radius: 5px; margin-left: -12.5px;
+    background: linear-gradient(180deg, #FBFBFC 0%, #DDE1E4 26%, #A8AEB3 52%, #C6CBCF 74%, #83898E 100%);
+    box-shadow: 0 1px 0 rgba(255,255,255,.95) inset, 0 -1px 2px rgba(0,0,0,.35) inset,
+                0 4px 9px -2px rgba(0,0,0,.85), 0 0 13px var(--glow-soft);
   }
-  .eq-freq { font-size: 11px; font-weight: 600; color: var(--text-muted); text-align: center; line-height: 1.2; }
-  .eq-freq span { display: block; font-size: 9px; font-weight: 400; opacity: 0.6; }
-  .eq-curve-wrap { padding: 4px 0 12px; border-top: 1px solid var(--border); }
+  .eq-freq { font-size: 10px; font-weight: 700; color: var(--text-muted); text-align: center;
+             line-height: 1.3; letter-spacing: .4px; }
+  .eq-freq span { display: block; font-size: 8.5px; font-weight: 500; opacity: .55; letter-spacing: .3px; }
+  .eq-curve-wrap { padding: 8px 0 14px; box-shadow: 0 -1px 0 rgba(0,0,0,.55), 0 0 0 0 transparent; }
   #eqCurveCanvas { width: 100%; height: 44px; display: block; }
 
-  /* ── HISTORY ── */
-  .dose-card { background: var(--amber-dim); border: 1px solid rgba(255,149,0,0.3); border-radius: var(--radius); padding: 18px; margin: 0 12px 10px; text-align: center; }
-  .dose-timer { font-family: 'Space Grotesk', sans-serif; font-size: 42px; font-weight: 700; color: var(--amber); line-height: 1; margin-bottom: 6px; }
-  .dose-label { font-size: 12px; color: var(--text-dim); }
-  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0 12px 10px; }
-  .stat { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; text-align: center; }
-  .stat .v { font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700; color: var(--text); }
-  .stat .k { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+  /* ── DOSE ───────────────────────────────────── */
+  .dose-card { padding: 22px; margin: 0 14px 11px; text-align: center; }
+  .dose-timer { font-family: 'Space Grotesk', sans-serif; font-size: 46px; font-weight: 700;
+                color: var(--amber); line-height: 1; margin-bottom: 8px;
+                text-shadow: 0 0 22px rgba(255,159,46,.4); }
+  .dose-label { font-size: 11.5px; color: var(--text-dim); letter-spacing: .4px; }
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; margin: 0 14px 11px; }
+  .stat { padding: 16px; text-align: center; }
+  .stat .v { font-family: 'Space Grotesk', sans-serif; font-size: 21px; font-weight: 700;
+             color: var(--metal-1); text-shadow: 0 0 12px var(--glow-soft); }
+  .stat .k { font-size: 9.5px; color: var(--text-muted); margin-top: 5px;
+             letter-spacing: 1.1px; text-transform: uppercase; }
 
-  /* ── DIAGNOSTICS ── */
-  .diag-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid rgba(42,42,64,0.6); font-size: 12px; }
-  .diag-row:last-child { border-bottom: none; }
-  .diag-key { color: var(--text-muted); flex-shrink: 0; }
-  .diag-val { font-family: 'Space Grotesk', sans-serif; font-weight: 600; color: var(--text-dim); text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* ── DIAGNOSTICS ────────────────────────────── */
+  .diag-row { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+              padding: 9px 0; font-size: 11.5px;
+              box-shadow: 0 1px 0 rgba(0,0,0,.45), 0 2px 0 var(--edge); }
+  .diag-row:last-child { box-shadow: none; }
+  .diag-key { color: var(--text-muted); flex-shrink: 0; letter-spacing: .3px; }
+  .diag-val { font-family: 'Space Grotesk', sans-serif; font-weight: 700; color: var(--text-dim);
+              text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; letter-spacing: .3px; }
   .diag-val.good { color: var(--green); }
   .diag-val.bad { color: var(--red); }
   .diag-val.warn { color: var(--amber); }
 
-  .pad-bottom { height: 16px; flex-shrink: 0; }
+  .pad-bottom { height: 18px; flex-shrink: 0; }
 </style>
 </head>
 <body>
@@ -279,7 +445,7 @@
 
 <!-- SHOW MODE MODAL -->
 <div class="modal-scrim" id="showModeModal">
-  <div class="modal">
+  <div class="modal surface">
     <h4>Show Mode is on</h4>
     <p>Your screen will stay awake while audio is running so the app keeps processing. Locking the phone with the side button still stops audio.</p>
     <button id="showModeOk">Got it</button>
@@ -304,11 +470,12 @@
       <div class="live-wrap">
         <div class="error-banner" id="errorBanner" style="margin:0 0 4px;"></div>
 
-        <div class="meter-card">
+        <div class="meter-card surface">
           <canvas id="waveCanvas"></canvas>
           <div class="db-readout"><span class="val" id="dbVal">—</span>dBSPL</div>
+          <div class="in-readout">MIC IN <b id="inVal">—</b></div>
           <div class="db-meter-wrap">
-            <div class="db-track">
+            <div class="db-track well">
               <div class="db-fill" id="dbFill"></div>
               <div class="db-limit-marker" id="limitMarker" style="left:70%"></div>
             </div>
@@ -316,15 +483,22 @@
           </div>
         </div>
 
-        <div class="vol-card">
-          <div class="vol-head">
+        <div class="knob-card surface">
+          <div class="knob-stage" id="volKnob">
+            <svg class="knob-ticks" viewBox="0 0 116 116" aria-hidden="true"></svg>
+            <svg class="knob-ring" viewBox="0 0 116 116" aria-hidden="true">
+              <circle class="trk" cx="58" cy="58" r="52"/>
+              <circle class="val" id="volArc" cx="58" cy="58" r="52"/>
+            </svg>
+            <div class="knob"><div class="knob-dot"></div></div>
+          </div>
+          <div class="knob-meta">
             <h3>Volume</h3>
-            <span class="num" id="volLabel">80</span>
+            <div class="num" id="volLabel">100</div>
+            <div class="unit">DRAG UP / DOWN</div>
           </div>
-          <div class="vol-track">
-            <div class="vol-fill" id="volFill"></div>
-            <input type="range" class="vol-slider" id="volSlider" min="0" max="100" value="80">
-          </div>
+          <input type="range" id="volSlider" min="0" max="100" value="100" style="display:none">
+        </div>
         </div>
 
         <div class="preset-row">
@@ -333,11 +507,11 @@
         </div>
 
         <div class="action-row">
-          <div class="action-btn duck" id="duckBtn">
+          <div class="action-btn duck surface" id="duckBtn">
             <div class="lbl">DUCK</div>
             <div class="sub">hold to talk</div>
           </div>
-          <div class="action-btn" id="tuneBtn">
+          <div class="action-btn surface" id="tuneBtn">
             <div class="fill" id="tuneFill"></div>
             <div class="lbl" id="tuneLbl">AUTO TUNE</div>
             <div class="sub" id="tuneSub">hold 3s to sample</div>
@@ -362,11 +536,11 @@
         <div class="preset-scroll" id="presetScrollTab"></div>
       </div>
       <div class="section-label"><h3>Equalizer</h3><span class="hint">±12 dB</span></div>
-      <div class="eq-panel">
+      <div class="eq-panel surface">
         <div class="eq-grid" id="eqGrid"></div>
         <div class="eq-curve-wrap"><canvas id="eqCurveCanvas"></canvas></div>
       </div>
-      <div class="card">
+      <div class="card surface">
         <div class="card-title">Tip</div>
         <div class="card-desc">Set your EQ once for the room, then leave it. Changes apply live and stay put when you switch back to the Live tab.</div>
       </div>
@@ -376,15 +550,15 @@
     <!-- ════════ HISTORY ════════ -->
     <div class="tab-panel" id="tab-history">
       <div class="section-label"><h3>Hearing Dose</h3></div>
-      <div class="dose-card">
+      <div class="dose-card surface">
         <div class="dose-timer" id="hearingTimer">0:00</div>
         <div class="dose-label" id="safeTimeText">Safe at this level</div>
       </div>
       <div class="stat-grid">
-        <div class="stat"><div class="v" id="statLimit">85 dB</div><div class="k">Output cap</div></div>
-        <div class="stat"><div class="v" id="statSafe">8 hrs</div><div class="k">Safe exposure</div></div>
+        <div class="stat surface"><div class="v" id="statLimit">85 dB</div><div class="k">Output cap</div></div>
+        <div class="stat surface"><div class="v" id="statSafe">8 hrs</div><div class="k">Safe exposure</div></div>
       </div>
-      <div class="card">
+      <div class="card surface">
         <div class="card-title">How this works</div>
         <div class="card-desc">Safe exposure follows the 3&nbsp;dB exchange rate: every 3&nbsp;dB louder halves the time you can listen safely. The timer counts how long audio has been running this session.</div>
       </div>
@@ -395,7 +569,7 @@
     <div class="tab-panel" id="tab-settings">
 
       <div class="section-label"><h3>Loudness</h3></div>
-      <div class="card">
+      <div class="card surface">
         <div class="toggle-row">
           <div>
             <div class="toggle-label">Auto Level</div>
@@ -406,7 +580,7 @@
 
         <div class="reveal open" id="agcReveal">
           <div class="card-title">Loudness <span class="sub" id="agcTargetLabel">6</span></div>
-          <div class="dial-track" style="position:relative;">
+          <div class="dial-track well" style="position:relative;">
             <div class="dial-fill" id="agcTargetFill" style="width:58%"></div>
             <input type="range" class="dial-slider" id="agcTargetSlider" min="1" max="10" value="6" step="1">
           </div>
@@ -415,7 +589,7 @@
           <span class="adv-toggle" id="advToggle">▸ Advanced</span>
           <div class="reveal" id="advReveal">
             <div class="card-title">Max boost <span class="sub" id="agcMaxLabel">+30 dB</span></div>
-            <div class="dial-track" style="position:relative;">
+            <div class="dial-track well" style="position:relative;">
               <div class="dial-fill" id="agcMaxFill" style="width:67%"></div>
               <input type="range" class="dial-slider" id="agcMaxSlider" min="0" max="45" value="30" step="1">
             </div>
@@ -424,8 +598,17 @@
         </div>
       </div>
 
+      <div class="card surface">
+        <div class="card-title">Output boost <span class="sub" id="boostLabel">+0 dB</span></div>
+        <div class="dial-track well" style="position:relative;">
+          <div class="dial-fill" id="boostFill" style="width:0%"></div>
+          <input type="range" class="dial-slider" id="boostSlider" min="0" max="18" value="0" step="1">
+        </div>
+        <div class="card-desc">Extra gain after Auto Level. Raise this if the band is still quieter than the sound leaking past your ear tips. The limiter still caps peaks.</div>
+      </div>
+
       <div class="section-label"><h3>Hearing Protection</h3></div>
-      <div class="card">
+      <div class="card surface">
         <div class="toggle-row">
           <div>
             <div class="toggle-label">Hard limiter</div>
@@ -435,7 +618,7 @@
         </div>
         <div class="reveal open" id="limReveal">
           <div class="card-title">Output cap <span class="sub" id="limitLabel">85 dB</span></div>
-          <div class="dial-track" style="position:relative;">
+          <div class="dial-track well" style="position:relative;">
             <div class="dial-fill amber" id="limitFill" style="width:50%"></div>
             <input type="range" class="dial-slider" id="limitSlider" min="60" max="105" value="85" step="1">
           </div>
@@ -444,7 +627,7 @@
       </div>
 
       <div class="section-label"><h3>Show Mode</h3></div>
-      <div class="card">
+      <div class="card surface">
         <div class="toggle-row">
           <div>
             <div class="toggle-label">Keep screen awake</div>
@@ -454,8 +637,18 @@
         </div>
       </div>
 
+      <div class="section-label"><h3>Session Log</h3><span class="hint" id="diagLogCount">0 samples</span></div>
+      <div class="card surface">
+        <div class="card-desc" style="margin-top:0;">Records mic input, auto gain and output once per second. Review this after a show to see exactly where the signal went.</div>
+        <div style="display:flex; gap:8px; margin-top:14px;">
+          <div class="action-btn surface" id="logCopyBtn" style="flex:1; padding:11px 8px;"><div class="lbl" style="font-size:12px;">COPY LOG</div></div>
+          <div class="action-btn surface" id="logClearBtn" style="flex:1; padding:11px 8px;"><div class="lbl" style="font-size:12px;">CLEAR</div></div>
+        </div>
+        <textarea id="logOut" readonly style="display:none; width:100%; height:120px; margin-top:12px; background:var(--panel2); color:var(--text-dim); border:1px solid var(--border); border-radius:10px; padding:10px; font-size:11px; font-family:monospace;"></textarea>
+      </div>
+
       <div class="section-label"><h3>Diagnostics</h3><span class="hint" id="diagHint">live</span></div>
-      <div class="card">
+      <div class="card surface">
         <div class="diag-row"><span class="diag-key">Input device</span><span class="diag-val" id="diagDevice">—</span></div>
         <div class="diag-row"><span class="diag-key">Auto gain control</span><span class="diag-val" id="diagAgc">—</span></div>
         <div class="diag-row"><span class="diag-key">Noise suppression</span><span class="diag-val" id="diagNs">—</span></div>
@@ -513,7 +706,11 @@ const AGC_MIN_DB = -12;
 function dbToLin(db) { return Math.pow(10, db / 20); }
 
 // Loudness 1–10 maps onto target dBFS -30 … -6
-function loudnessToTargetDb(n) { return -30 + ((n - 1) / 9) * 24; }
+// Loudness 1–10 -> target dBFS. Raised from the old -30…-6 range: at the
+// Sept 22 show the app delivered ~-18 dBFS, which lost to the ~64 dB of PA
+// leaking through sealed foam tips. Running hotter is the point; the limiter
+// downstream is what enforces safety, not an artificially quiet target.
+function loudnessToTargetDb(n) { return -24 + ((n - 1) / 9) * 20; }
 
 // Duck + Auto Tune state
 let duckGainNode = null;
@@ -530,6 +727,16 @@ const TUNE_BANDS = [[20,120],[120,500],[500,2000],[2000,8000],[8000,16000]];
 // Correcting toward FLAT sounds thin and harsh, because music genuinely
 // carries more energy low and rolls off high. We correct toward this instead.
 const TUNE_TARGET = [4, 1, 0, -1, -3];
+
+// Output boost — explicit, visible headroom on top of the AGC.
+let boostGainNode = null;
+
+// Session log. The Sept 22 post-mortem ran on recollection; this makes the
+// next one run on data. One sample/sec of input, AGC gain and output.
+let sessionLog = [];
+let logLastT = 0;
+const LOG_MAX = 7500;            // ~2 hours at 1 Hz
+const LOG_KEY = 'ss_session_log';
 
 // Show Mode state
 let wakeLock = null;
@@ -602,6 +809,9 @@ async function initAudio() {
     duckGainNode = audioCtx.createGain();
     duckGainNode.gain.value = 1;
 
+    boostGainNode = audioCtx.createGain();
+    boostGainNode.gain.value = dbToLin(parseFloat(document.getElementById('boostSlider').value));
+
     // Spectrum tap for Auto Tune. Separate from the AGC analyser so a big FFT
     // here doesn't slow the AGC's response. Sits pre-EQ so we measure the room,
     // not our own correction.
@@ -629,7 +839,8 @@ async function initAudio() {
     for (let i = 0; i < filters.length - 1; i++) filters[i].connect(filters[i + 1]);
     filters[filters.length - 1].connect(gainNode);
     gainNode.connect(duckGainNode);
-    duckGainNode.connect(compressorNode);
+    duckGainNode.connect(boostGainNode);
+    boostGainNode.connect(compressorNode);
     compressorNode.connect(analyserNode);
     analyserNode.connect(audioCtx.destination);
 
@@ -884,10 +1095,56 @@ function updateAgc(now) {
   }
   agcGainNode.gain.setTargetAtTime(dbToLin(agcCurrentDb), audioCtx.currentTime, 0.02);
 
+  // Always-visible mic input level. This is the number that mattered at the
+  // show: if the PA is loud but this stays low, the phone mic is clamping and
+  // no amount of downstream gain fixes the source.
+  const inEl = document.getElementById('inVal');
+  if (inEl) {
+    if (agcInputDb > -Infinity) {
+      inEl.textContent = agcInputDb.toFixed(0) + ' dBFS';
+      inEl.className = agcInputDb > -30 ? 'hot' : (agcInputDb > -50 ? '' : 'low');
+    } else { inEl.textContent = '—'; inEl.className = ''; }
+  }
+
+  // One sample per second into the session log
+  if (now - logLastT > 1000) {
+    logLastT = now;
+    const outDb = getRmsDb();
+    sessionLog.push({
+      t: Math.round(elapsed),
+      in: Number(agcInputDb.toFixed(1)),
+      agc: Number(agcCurrentDb.toFixed(1)),
+      out: Number((isFinite(outDb) ? outDb : -120).toFixed(1))
+    });
+    if (sessionLog.length > LOG_MAX) sessionLog.shift();
+    if (sessionLog.length % 10 === 0) {
+      try { localStorage.setItem(LOG_KEY, JSON.stringify(sessionLog.slice(-LOG_MAX))); } catch (e) {}
+    }
+    if (currentTab === 'settings') setDiag('diagLogCount', sessionLog.length + ' samples');
+  }
+
   if (currentTab === 'settings') {
     setDiag('diagRoom', agcInputDb > -Infinity ? agcInputDb.toFixed(1) + ' dBFS' : 'silent');
     setDiag('diagAgcGain', (agcCurrentDb >= 0 ? '+' : '') + agcCurrentDb.toFixed(1) + ' dB');
   }
+}
+
+// ── SESSION LOG EXPORT ──
+function logAsText() {
+  if (!sessionLog.length) return 'No samples recorded.';
+  let peakIn = -999, minIn = 999, peakOut = -999;
+  sessionLog.forEach(r => {
+    if (r.in > peakIn) peakIn = r.in;
+    if (r.in < minIn && r.in > -120) minIn = r.in;
+    if (r.out > peakOut) peakOut = r.out;
+  });
+  const head =
+    'ShowSound session log\n' +
+    'samples: ' + sessionLog.length + '  (1/sec)\n' +
+    'mic in  peak ' + peakIn.toFixed(1) + '  min ' + minIn.toFixed(1) + ' dBFS\n' +
+    'output  peak ' + peakOut.toFixed(1) + ' dBFS\n' +
+    't,in,agc,out\n';
+  return head + sessionLog.map(r => [r.t, r.in, r.agc, r.out].join(',')).join('\n');
 }
 
 function getRmsDb() {
@@ -1063,8 +1320,8 @@ document.querySelectorAll('.nav-item').forEach(item => {
 // CONTROLS
 // ═══════════════════════════════════════════════
 document.getElementById('volSlider').addEventListener('input', function() {
-  document.getElementById('volFill').style.width = this.value + '%';
   document.getElementById('volLabel').textContent = this.value;
+  renderKnob(parseFloat(this.value));
   if (gainNode) gainNode.gain.value = this.value / 100;
 });
 
@@ -1094,6 +1351,31 @@ document.getElementById('agcMaxSlider').addEventListener('input', function() {
 document.getElementById('advToggle').addEventListener('click', function() {
   const open = document.getElementById('advReveal').classList.toggle('open');
   this.textContent = (open ? '▾ ' : '▸ ') + 'Advanced';
+});
+
+document.getElementById('boostSlider').addEventListener('input', function() {
+  const v = parseInt(this.value);
+  document.getElementById('boostFill').style.width = (v / 18 * 100) + '%';
+  document.getElementById('boostLabel').textContent = '+' + v + ' dB';
+  if (boostGainNode && audioCtx) boostGainNode.gain.setTargetAtTime(dbToLin(v), audioCtx.currentTime, 0.05);
+});
+
+document.getElementById('logCopyBtn').addEventListener('click', function() {
+  const ta = document.getElementById('logOut');
+  ta.value = logAsText();
+  ta.style.display = 'block';
+  ta.select();
+  try { document.execCommand('copy'); } catch (e) {}
+  const l = this.querySelector('.lbl');
+  l.textContent = 'COPIED';
+  setTimeout(() => { l.textContent = 'COPY LOG'; }, 1500);
+});
+
+document.getElementById('logClearBtn').addEventListener('click', function() {
+  sessionLog = [];
+  try { localStorage.removeItem(LOG_KEY); } catch (e) {}
+  document.getElementById('logOut').style.display = 'none';
+  setDiag('diagLogCount', '0 samples');
 });
 
 document.getElementById('limiterToggle').addEventListener('click', function() {
@@ -1188,7 +1470,82 @@ document.getElementById('startBtn').addEventListener('click', async (e) => {
   if (ok) document.getElementById('permOverlay').classList.add('hidden');
 });
 
+
+// ═══════════════════════════════════════════════
+// ROTARY KNOB
+// Purely a skin over the existing range input: the knob writes to #volSlider
+// and dispatches 'input', so every listener downstream is untouched.
+// ═══════════════════════════════════════════════
+const KNOB_SWEEP = 270;                 // degrees of travel
+const KNOB_ARC_LEN = 2 * Math.PI * 52;  // r=52 in the 116-box viewBox
+const KNOB_DRAG_PX = 170;               // px of vertical drag for full range
+
+function renderKnob(pct) {
+  const arc = document.getElementById('volArc');
+  const knob = document.querySelector('#volKnob .knob');
+  if (!arc || !knob) return;
+  const frac = Math.max(0, Math.min(1, pct / 100));
+  const visible = (KNOB_SWEEP / 360) * KNOB_ARC_LEN;
+  arc.style.strokeDasharray = visible + ' ' + KNOB_ARC_LEN;
+  arc.style.strokeDashoffset = visible * (1 - frac);
+  knob.style.transform = 'rotate(' + (-135 + frac * KNOB_SWEEP) + 'deg)';
+}
+
+(function initKnob() {
+  const stage = document.getElementById('volKnob');
+  const input = document.getElementById('volSlider');
+  if (!stage || !input) return;
+
+  // tick ring
+  const ticks = stage.querySelector('.knob-ticks');
+  let marks = '';
+  for (let i = 0; i <= 28; i++) {
+    const a = (-225 + (i / 28) * KNOB_SWEEP) * Math.PI / 180;
+    const major = i % 7 === 0;
+    const r1 = major ? 44 : 46.5, r2 = 50;
+    marks += '<line x1="' + (58 + Math.cos(a) * r1).toFixed(2) +
+             '" y1="' + (58 + Math.sin(a) * r1).toFixed(2) +
+             '" x2="' + (58 + Math.cos(a) * r2).toFixed(2) +
+             '" y2="' + (58 + Math.sin(a) * r2).toFixed(2) +
+             '" style="stroke-width:' + (major ? 2.2 : 1.4) + '"/>';
+  }
+  ticks.innerHTML = marks;
+
+  let dragging = false, startY = 0, startVal = 0;
+
+  stage.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    dragging = true;
+    startY = e.clientY;
+    startVal = parseFloat(input.value);
+    stage.classList.add('active');
+    try { stage.setPointerCapture(e.pointerId); } catch (err) {}
+  });
+
+  stage.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    e.preventDefault();
+    const delta = (startY - e.clientY) / KNOB_DRAG_PX * 100;
+    const v = Math.round(Math.max(0, Math.min(100, startVal + delta)));
+    if (v !== parseFloat(input.value)) {
+      input.value = v;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  });
+
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach((ev) =>
+    stage.addEventListener(ev, () => { dragging = false; stage.classList.remove('active'); })
+  );
+
+  renderKnob(parseFloat(input.value));
+})();
+
 // ── INIT ──
+try {
+  const saved = localStorage.getItem(LOG_KEY);
+  if (saved) { sessionLog = JSON.parse(saved) || []; setDiag('diagLogCount', sessionLog.length + ' samples'); }
+} catch (e) {}
+
 setTimeout(() => { drawEqCurve(); drawWaveform(); updateSafeTime(); updateUI(); }, 150);
 window.addEventListener('resize', () => { drawEqCurve(); drawWaveform(); });
 
