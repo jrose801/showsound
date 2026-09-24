@@ -49,7 +49,7 @@
     overscroll-behavior: none;
   }
 
-  .app { display: flex; flex-direction: column; height: 100vh; height: 100dvh;
+  .app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; overflow: hidden;
          background:
            radial-gradient(120% 60% at 50% -10%, #272C31 0%, transparent 60%),
            var(--bg); }
@@ -100,10 +100,12 @@
   .status-pill.active .status-dot { background: var(--cyan); box-shadow: 0 0 8px var(--cyan); animation: pulse 1.6s infinite; }
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
 
-  .tab-host { flex: 1; position: relative; min-height: 0; }
+  .tab-host { flex: 1; position: relative; min-height: 0; overflow: hidden; }
   .tab-panel { position: absolute; inset: 0; display: none; flex-direction: column;
                overflow-y: auto; -webkit-overflow-scrolling: touch; }
   .tab-panel.active { display: flex; }
+  /* Live never scrolls — it must always fit above the nav */
+  #tab-live { overflow: hidden; }
 
   /* ── NAV ────────────────────────────────────── */
   .nav-bar {
@@ -160,9 +162,19 @@
                   font-size: 12.5px; color: #FF8078; display: none; }
 
   /* ── LIVE ───────────────────────────────────── */
-  .live-wrap { display: flex; flex-direction: column; height: 100%; padding: 12px 14px 6px; gap: 12px; }
+  .live-wrap {
+    height: 100%; min-height: 0;
+    display: flex; flex-direction: column;
+    padding: 10px 14px calc(8px + env(safe-area-inset-bottom, 0px));
+    gap: 10px;
+  }
+  /* Tier 1 — the hero. Absorbs all leftover height so the knob is
+     unmistakably the main control and sits in easy thumb reach. */
+  .knob-card { flex: 1 1 auto; min-height: 150px; }
+  /* Tiers 2–4 hold their intrinsic height */
+  .meter-card, .preset-row, .action-row { flex: 0 0 auto; }
 
-  .meter-card { position: relative; padding: 13px 15px 14px; flex-shrink: 0; }
+  .meter-card { position: relative; padding: 12px 15px 13px; }
   #waveCanvas { width: 100%; height: 58px; display: block; }
   .db-readout { position: absolute; top: 13px; right: 17px; text-align: right;
                 font-size: 9px; font-weight: 700; color: var(--text-muted); letter-spacing: 1.2px; }
@@ -187,8 +199,12 @@
                font-weight: 700; width: 42px; text-align: right; letter-spacing: .4px; }
 
   /* ── ROTARY KNOB ────────────────────────────── */
-  .knob-card { flex-shrink: 0; padding: 16px 18px 18px; display: flex; align-items: center; gap: 20px; }
-  .knob-stage { position: relative; width: 116px; height: 116px; flex-shrink: 0; touch-action: none; }
+  .knob-card {
+    padding: 14px 20px; display: flex; align-items: center; justify-content: center;
+    gap: clamp(14px, 5vw, 32px);
+  }
+  .knob-stage { position: relative; width: clamp(116px, 34vw, 152px); aspect-ratio: 1;
+                flex-shrink: 0; touch-action: none; }
   .knob-ring { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(135deg); }
   .knob-ring .trk { fill: none; stroke: rgba(0,0,0,.55); stroke-width: 3; }
   .knob-ring .val { fill: none; stroke: var(--metal-1); stroke-width: 3; stroke-linecap: round;
@@ -196,7 +212,7 @@
   .knob-ticks { position: absolute; inset: 0; width: 100%; height: 100%; }
   .knob-ticks line { stroke: rgba(255,255,255,.17); stroke-width: 1.6; stroke-linecap: round; }
   .knob {
-    position: absolute; left: 14px; top: 14px; width: 88px; height: 88px; border-radius: 50%;
+    position: absolute; inset: 12%; border-radius: 50%;
     background:
       radial-gradient(circle at 50% 42%, #F4F5F6 0%, #D3D7DB 38%, #9BA1A7 66%, #6E747A 100%);
     box-shadow:
@@ -219,22 +235,22 @@
     content: ''; position: absolute; inset: 11px; border-radius: 50%;
     box-shadow: 0 1px 2px rgba(255,255,255,.5) inset, 0 -1px 3px rgba(0,0,0,.35) inset;
   }
-  .knob-dot { position: absolute; left: 50%; top: 8px; width: 6px; height: 6px; margin-left: -3px;
+  .knob-dot { position: absolute; left: 50%; top: 9%; width: 7px; height: 7px; margin-left: -3.5px;
               border-radius: 50%; background: #23272A; box-shadow: 0 1px 1px rgba(255,255,255,.5); z-index: 2; }
   .knob-stage.active .knob { cursor: grabbing; }
   .knob-stage.active .knob-ring .val { filter: drop-shadow(0 0 9px var(--glow)); }
 
-  .knob-meta { flex: 1; min-width: 0; }
+  .knob-meta { min-width: 0; }
   .knob-meta h3 { font-family: 'Space Grotesk', sans-serif; font-size: 10px; font-weight: 700;
                   color: var(--text-muted); letter-spacing: 1.6px; text-transform: uppercase; margin-bottom: 5px; }
-  .knob-meta .num { font-family: 'Space Grotesk', sans-serif; font-size: 46px; font-weight: 700;
+  .knob-meta .num { font-family: 'Space Grotesk', sans-serif; font-size: clamp(44px, 14vw, 64px); font-weight: 700;
                     line-height: 1; color: var(--metal-1); text-shadow: 0 0 20px var(--glow-soft); }
   .knob-meta .unit { font-size: 11px; color: var(--text-muted); letter-spacing: 1px; margin-top: 6px; }
 
   /* ── PRESET CHIPS ───────────────────────────── */
   .preset-row { flex-shrink: 0; }
   .row-label { font-family: 'Space Grotesk', sans-serif; font-size: 9px; font-weight: 700;
-               color: var(--text-muted); letter-spacing: 1.6px; text-transform: uppercase; margin-bottom: 9px; }
+               color: var(--text-muted); letter-spacing: 1.6px; text-transform: uppercase; margin-bottom: 7px; }
   .preset-scroll { display: flex; gap: 9px; overflow-x: auto; padding: 2px 0 5px; scrollbar-width: none; }
   .preset-scroll::-webkit-scrollbar { display: none; }
   .preset-chip {
@@ -276,10 +292,9 @@
   .action-btn.done .lbl { color: var(--green); text-shadow: 0 0 10px rgba(69,217,122,.7); }
 
   /* ── POWER ──────────────────────────────────── */
-  .power-wrap { flex: 1; display: flex; flex-direction: column; align-items: center;
-                justify-content: center; gap: 9px; min-height: 84px; }
+  .head-actions { display: flex; align-items: center; gap: 11px; }
   .power-btn {
-    width: 62px; height: 62px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
     cursor: pointer; transition: all .22s;
     background: radial-gradient(circle at 50% 36%, #33383D, #1D2023 70%);
     box-shadow: 0 1px 0 var(--edge-hi) inset, 0 -2px 5px rgba(0,0,0,.55) inset,
@@ -291,7 +306,7 @@
                 0 0 26px var(--cyan-glow), 0 8px 18px -5px rgba(0,0,0,.85);
   }
   .power-btn.active svg { filter: drop-shadow(0 0 7px var(--cyan)); }
-  .power-hint { font-size: 10.5px; color: var(--text-muted); letter-spacing: .7px; }
+
 
   /* ── CARDS / SECTIONS ───────────────────────── */
   .section-label { padding: 18px 20px 9px; display: flex; align-items: center; justify-content: space-between; }
@@ -457,9 +472,16 @@
   <!-- HEADER (fixed) -->
   <div class="topbar">
     <div class="logo">Show<span>Sound</span></div>
-    <div class="status-pill" id="statusPill">
-      <div class="status-dot" id="statusDot"></div>
-      <span id="statusText">Ready</span>
+    <div class="head-actions">
+      <div class="power-btn" id="powerBtn" title="Pause / resume">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B9196" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2v6M6.3 5.3a8 8 0 1 0 11.4 0"/>
+        </svg>
+      </div>
+      <div class="status-pill" id="statusPill">
+        <div class="status-dot" id="statusDot"></div>
+        <span id="statusText">Ready</span>
+      </div>
     </div>
   </div>
 
@@ -468,8 +490,9 @@
     <!-- ════════ LIVE ════════ -->
     <div class="tab-panel active" id="tab-live">
       <div class="live-wrap">
-        <div class="error-banner" id="errorBanner" style="margin:0 0 4px;"></div>
+        <div class="error-banner" id="errorBanner"></div>
 
+        <!-- TIER 2 · glanceable status -->
         <div class="meter-card surface">
           <canvas id="waveCanvas"></canvas>
           <div class="db-readout"><span class="val" id="dbVal">—</span>dBSPL</div>
@@ -483,6 +506,7 @@
           </div>
         </div>
 
+        <!-- TIER 1 · the hero: what you touch most, biggest target -->
         <div class="knob-card surface">
           <div class="knob-stage" id="volKnob">
             <svg class="knob-ticks" viewBox="0 0 116 116" aria-hidden="true"></svg>
@@ -495,17 +519,18 @@
           <div class="knob-meta">
             <h3>Volume</h3>
             <div class="num" id="volLabel">100</div>
-            <div class="unit">DRAG UP / DOWN</div>
+            <div class="unit">DRAG ↑ ↓</div>
           </div>
           <input type="range" id="volSlider" min="0" max="100" value="100" style="display:none">
         </div>
-        </div>
 
+        <!-- TIER 3 · occasional -->
         <div class="preset-row">
           <div class="row-label">Venue</div>
           <div class="preset-scroll" id="presetScrollLive"></div>
         </div>
 
+        <!-- TIER 2 · urgent, lowest = easiest thumb reach -->
         <div class="action-row">
           <div class="action-btn duck surface" id="duckBtn">
             <div class="lbl">DUCK</div>
@@ -516,15 +541,6 @@
             <div class="lbl" id="tuneLbl">AUTO TUNE</div>
             <div class="sub" id="tuneSub">hold 3s to sample</div>
           </div>
-        </div>
-
-        <div class="power-wrap">
-          <div class="power-btn" id="powerBtn">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#8888AA" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 2v6M6.3 5.3a8 8 0 1 0 11.4 0"/>
-            </svg>
-          </div>
-          <div class="power-hint" id="powerHint">Mic not started</div>
         </div>
       </div>
     </div>
@@ -978,19 +994,19 @@ function resumeAudio() { if (audioCtx) audioCtx.resume(); isPlaying = true; upda
 function updateUI() {
   const pill = document.getElementById('statusPill');
   const btn = document.getElementById('powerBtn');
-  const hint = document.getElementById('powerHint');
+  const hint = document.getElementById('powerHint'); // removed from header layout
   if (isPlaying) {
     pill.classList.add('active');
     document.getElementById('statusText').textContent = 'Live';
     btn.classList.add('active');
     btn.querySelector('svg').setAttribute('stroke', '#00E5FF');
-    hint.textContent = 'Tap to pause';
+    if (hint) hint.textContent = 'Tap to pause';
   } else {
     pill.classList.remove('active');
     document.getElementById('statusText').textContent = audioCtx ? 'Paused' : 'Ready';
     btn.classList.remove('active');
     btn.querySelector('svg').setAttribute('stroke', '#8888AA');
-    hint.textContent = audioCtx ? 'Tap to resume' : 'Mic not started';
+    if (hint) hint.textContent = audioCtx ? 'Tap to resume' : 'Mic not started';
   }
 }
 function setStatus(t) { document.getElementById('statusText').textContent = t; }
