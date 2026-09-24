@@ -202,50 +202,48 @@
   .in-readout b.hot { color: var(--green); text-shadow: 0 0 9px rgba(69,217,122,.5); }
   .in-readout b.low { color: var(--amber); }
 
-  .db-meter-wrap { display: flex; align-items: center; gap: 10px; margin-top: 8px; padding: 0 9px; }
-  .db-track { flex: 1; min-width: 0; height: 9px; position: relative; overflow: hidden; }
+  .db-meter-wrap { display: flex; align-items: center; gap: 10px; margin-top: 14px; padding: 0 9px 6px; }
+  /* Track gets taller and gets side breathing room so the marker handle has
+     room to sit centered on the edge and still be fully grabbable. */
+  .db-track { flex: 1; min-width: 0; height: 9px; position: relative; overflow: visible; }
   .db-fill { height: 100%; width: 0%; border-radius: 999px; transition: width .05s linear;
              background: linear-gradient(90deg, var(--metal-3) 0%, var(--metal-1) 58%, var(--amber) 80%, var(--red) 100%);
-             box-shadow: 0 0 11px var(--glow-soft); }
-  .db-limit-marker { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--amber);
-                     border-radius: 1px; box-shadow: 0 0 6px var(--amber); }
+             box-shadow: 0 0 11px var(--glow-soft); overflow: hidden; border-radius: 999px 0 0 999px; }
 
-  /* Limiter cap — one physical control, not a toggle plus a separate slider.
-     Drag the whole pill like a hardware fader: the far left detent is OFF,
-     everything right of it is a live dB value. What you touch is what you
-     set — there's no second screen to open. */
-  .limit-dial {
-    position: relative; flex-shrink: 0; width: 128px; height: 34px;
-    border-radius: 999px; cursor: pointer; touch-action: none; user-select: none;
-    background: linear-gradient(180deg, var(--well) 0%, #1A1E21 100%);
-    box-shadow: 0 2px 5px rgba(0,0,0,.75) inset, 0 -1px 0 var(--edge) inset;
+  /* The cap marker doubles as its own slider handle — no separate control
+     beside the bar. Bigger hit target than the old static tick (28px tall,
+     centered on the track) so it's actually easy to grab on a phone. */
+  .db-limit-marker {
+    position: absolute; top: 50%; width: 14px; height: 28px; margin-left: -7px;
+    transform: translateY(-50%); z-index: 4; cursor: grab; touch-action: none;
+    display: flex; align-items: center; justify-content: center;
   }
-  .limit-dial-fill {
-    position: absolute; left: 3px; top: 3px; bottom: 3px; border-radius: 999px;
-    background: linear-gradient(90deg, #8A5A1E, var(--amber));
-    box-shadow: 0 0 10px rgba(255,159,46,.45);
-    transition: opacity .15s;
+  .db-limit-marker::before {
+    content: ''; width: 4px; height: 100%; border-radius: 2px;
+    background: linear-gradient(180deg, #FBFBFC 0%, #DDE1E4 30%, var(--amber) 55%, #C97A1E 100%);
+    box-shadow: 0 0 8px rgba(255,159,46,.6), 0 1px 0 rgba(255,255,255,.6) inset;
   }
-  .limit-dial.off .limit-dial-fill { opacity: 0; }
-  .limit-dial-off-zone {
-    position: absolute; left: 3px; top: 3px; bottom: 3px; width: 26px; border-radius: 999px 0 0 999px;
-    box-shadow: inset -1px 0 0 rgba(0,0,0,.4);
+  .db-limit-marker.dragging { cursor: grabbing; }
+  .db-limit-marker.dragging::before { box-shadow: 0 0 14px rgba(255,159,46,.85), 0 1px 0 rgba(255,255,255,.7) inset; }
+
+  /* Value bubble — appears only while dragging, floats above the thumb so
+     the number you're setting is never hidden under your finger. */
+  .limit-bubble {
+    position: absolute; bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%) scale(.85);
+    display: flex; align-items: baseline; gap: 2px; white-space: nowrap;
+    padding: 6px 11px; border-radius: 10px;
+    font-family: 'Space Grotesk', sans-serif; font-size: 15px; font-weight: 700; color: #1A1206;
+    background: linear-gradient(180deg, var(--metal-1), var(--metal-3));
+    box-shadow: 0 1px 0 rgba(255,255,255,.85) inset, 0 8px 18px -6px rgba(0,0,0,.85), 0 0 16px var(--glow-soft);
+    opacity: 0; pointer-events: none;
+    transition: opacity .15s ease, transform .15s ease;
   }
-  .limit-dial-label { position: absolute; inset: 0; display: flex; flex-direction: column;
-                       align-items: center; justify-content: center; z-index: 2; pointer-events: none; }
-  .limit-dial-label .lc-label { font-size: 7.5px; font-weight: 700; letter-spacing: 1px;
-                                 color: rgba(0,0,0,.5); text-transform: uppercase; line-height: 1; }
-  .limit-dial-label .lc-val { font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 700;
-                               color: #1A1206; letter-spacing: .2px; line-height: 1.3; }
-  .limit-dial.off .limit-dial-label .lc-label,
-  .limit-dial.off .limit-dial-label .lc-val { color: var(--text-muted); }
-  .limit-dial-thumb {
-    position: absolute; top: 2px; bottom: 2px; width: 30px; border-radius: 999px; z-index: 3;
-    background: radial-gradient(circle at 50% 35%, #FBFBFC, #C4C9CE 45%, #7D8388 100%);
-    box-shadow: 0 1px 0 rgba(255,255,255,.9) inset, 0 -2px 4px rgba(0,0,0,.3) inset,
-                0 3px 8px -2px rgba(0,0,0,.85);
-    transition: left .04s linear;
+  .limit-bubble::after {
+    content: ''; position: absolute; top: 100%; left: 50%; margin-left: -5px;
+    border: 5px solid transparent; border-top-color: var(--metal-3);
   }
+  .limit-bubble span { font-size: 9px; font-weight: 700; opacity: .65; }
+  .db-limit-marker.dragging .limit-bubble { opacity: 1; transform: translateX(-50%) scale(1); }
 
   /* ── ROTARY KNOB ────────────────────────────── */
   /* Flat card: the card itself isn't touchable, only the knob inside it is.
@@ -683,21 +681,16 @@
                reference so you can see margin, not just a single number. -->
           <canvas id="levelHistCanvas"></canvas>
 
+          <!-- The cap marker IS the control now — no separate slider beside
+               it. Tap and hold the marker, drag anywhere along the bar,
+               release to set. A value bubble appears above your thumb the
+               moment you touch it, so you're reading the number the whole
+               time you're dragging instead of guessing by position. -->
           <div class="db-meter-wrap">
-            <div class="db-track well">
+            <div class="db-track well" id="dbTrack">
               <div class="db-fill" id="dbFill"></div>
-              <div class="db-limit-marker" id="limitMarker" style="left:70%"></div>
-            </div>
-            <!-- One physical control: drag anywhere on the pill to set the
-                 cap; drag into the left zone to switch it off. No separate
-                 toggle, no popover. -->
-            <div class="limit-dial" id="limitDial">
-              <div class="limit-dial-off-zone"></div>
-              <div class="limit-dial-fill" id="limitDialFill"></div>
-              <div class="limit-dial-thumb" id="limitDialThumb"></div>
-              <div class="limit-dial-label">
-                <span class="lc-label" id="lcLabel">CAP</span>
-                <span class="lc-val" id="lcVal">85dB</span>
+              <div class="db-limit-marker" id="limitMarker" style="left:55.6%">
+                <div class="limit-bubble" id="limitBubble">85<span>dB</span></div>
               </div>
             </div>
           </div>
@@ -1602,14 +1595,14 @@ document.getElementById('volSlider').addEventListener('input', function() {
   if (gainNode) gainNode.gain.value = this.value / 100;
 });
 
-// Limiter cap — Settings keeps the full slider+toggle for when you want
-// the description text; the Live dial below is the same value, one control.
+// Limiter cap — Settings keeps the full slider for when you want the
+// description text; the marker on the Live meter bar is the same value,
+// dragged directly in place.
 function syncLimitControls(v, source) {
   document.getElementById('limitFill').style.width = ((v-60)/45*100) + '%';
   document.getElementById('limitLabel').textContent = v + ' dB';
-  document.getElementById('limitMarker').style.left = ((v-50)/60*100) + '%';
   if (source !== 'settings') document.getElementById('limitSlider').value = v;
-  if (source !== 'live') renderLimitDial(v, document.getElementById('limiterToggle').classList.contains('on'));
+  if (source !== 'live') renderLimitMarker(v);
   updateLimiter(); updateSafeTime(); drawLevelHistory();
 }
 
@@ -1661,12 +1654,11 @@ document.getElementById('logClearBtn').addEventListener('click', function() {
   setDiag('diagLogCount', '0 samples');
 });
 
-// Limiter on/off — Settings toggle stays as the explicit switch;
-// dragging the Live dial into its off-zone does the same thing.
+// Limiter on/off stays an explicit switch in Settings — dragging the Live
+// marker only ever adjusts the level of an already-active cap.
 function syncLimiterToggle(on, source) {
   document.getElementById('limiterToggle').classList.toggle('on', on);
   document.getElementById('limReveal').classList.toggle('open', on);
-  if (source !== 'live') renderLimitDial(parseInt(document.getElementById('limitSlider').value), on);
   updateLimiter(); drawLevelHistory();
 }
 document.getElementById('limiterToggle').addEventListener('click', function() {
@@ -1674,80 +1666,56 @@ document.getElementById('limiterToggle').addEventListener('click', function() {
 });
 
 // ═══════════════════════════════════════════════
-// LIVE LIMITER DIAL — one hardware-style fader instead of a toggle plus a
-// separate slider. Left of the divider is OFF; right of it, drag position
-// sets the cap in dB directly. Position is the value — nothing else to open.
+// LIVE LIMITER MARKER — the marker on the meter bar IS the slider. Tap and
+// hold anywhere on it, drag left/right along the track, a value bubble
+// floats above your thumb the whole time, release to commit. No separate
+// control living beside the bar anymore.
 // ═══════════════════════════════════════════════
-const LIMIT_DIAL_MIN = 60, LIMIT_DIAL_MAX = 105;
-const LIMIT_DIAL_OFF_ZONE_PX = 26;   // matches .limit-dial-off-zone width
-
-function renderLimitDial(v, on) {
-  const dial = document.getElementById('limitDial');
-  const fill = document.getElementById('limitDialFill');
-  const thumb = document.getElementById('limitDialThumb');
-  const val = document.getElementById('lcVal');
-  const lbl = document.getElementById('lcLabel');
-  if (!dial) return;
-  const W = dial.offsetWidth || 128;
-  const track = W - LIMIT_DIAL_OFF_ZONE_PX - 6;   // usable travel right of the off-zone
-  dial.classList.toggle('off', !on);
-  if (!on) {
-    thumb.style.left = '3px';
-    fill.style.right = (W - LIMIT_DIAL_OFF_ZONE_PX) + 'px';
-    fill.style.left = '3px';
-    lbl.textContent = 'CAP';
-    val.textContent = 'OFF';
-    return;
-  }
-  const frac = Math.max(0, Math.min(1, (v - LIMIT_DIAL_MIN) / (LIMIT_DIAL_MAX - LIMIT_DIAL_MIN)));
-  const thumbX = LIMIT_DIAL_OFF_ZONE_PX + frac * track;
-  thumb.style.left = thumbX + 'px';
-  fill.style.left = '3px';
-  fill.style.right = (W - thumbX - 30) + 'px';
-  lbl.textContent = 'CAP';
-  val.textContent = v + 'dB';
+// Marker position tracks the same 60–105 dB range as the Settings slider
+// (limitSlider min/max) — not the meter's visual 50–110 backdrop scale,
+// which is wider so the trace has headroom above the cap.
+const LIMIT_MIN = 60, LIMIT_MAX = 105;
+function renderLimitMarker(v) {
+  const marker = document.getElementById('limitMarker');
+  const bubble = document.getElementById('limitBubble');
+  if (!marker) return;
+  const pct = Math.max(0, Math.min(100, ((v - LIMIT_MIN) / (LIMIT_MAX - LIMIT_MIN)) * 100));
+  marker.style.left = pct + '%';
+  if (bubble) bubble.innerHTML = v + '<span>dB</span>';
 }
 
-(function initLimitDial() {
-  const dial = document.getElementById('limitDial');
-  if (!dial) return;
+(function initLimitMarker() {
+  const marker = document.getElementById('limitMarker');
+  const track = document.getElementById('dbTrack');
+  if (!marker || !track) return;
   let dragging = false;
 
   function valueFromX(x) {
-    const rect = dial.getBoundingClientRect();
-    const localX = x - rect.left;
-    if (localX < LIMIT_DIAL_OFF_ZONE_PX * 0.7) return null;   // dropped into the off-zone
-    const track = rect.width - LIMIT_DIAL_OFF_ZONE_PX - 6;
-    const frac = Math.max(0, Math.min(1, (localX - LIMIT_DIAL_OFF_ZONE_PX) / track));
-    return Math.round(LIMIT_DIAL_MIN + frac * (LIMIT_DIAL_MAX - LIMIT_DIAL_MIN));
+    const rect = track.getBoundingClientRect();
+    const frac = Math.max(0, Math.min(1, (x - rect.left) / rect.width));
+    return Math.round(LIMIT_MIN + frac * (LIMIT_MAX - LIMIT_MIN));
   }
 
   function apply(x) {
-    const v = valueFromX(x);
-    if (v === null) {
-      if (document.getElementById('limiterToggle').classList.contains('on')) {
-        syncLimiterToggle(false, 'live');
-      }
-      return;
-    }
-    if (!document.getElementById('limiterToggle').classList.contains('on')) {
-      syncLimiterToggle(true, 'live');
-    }
-    syncLimitControls(v, 'live');
+    syncLimitControls(valueFromX(x), 'live');
   }
 
-  dial.addEventListener('pointerdown', (e) => {
+  marker.addEventListener('pointerdown', (e) => {
     e.preventDefault();
     dragging = true;
-    dial.setPointerCapture(e.pointerId);
+    marker.classList.add('dragging');
+    try { marker.setPointerCapture(e.pointerId); } catch (err) {}
     apply(e.clientX);
   });
-  dial.addEventListener('pointermove', (e) => {
+  marker.addEventListener('pointermove', (e) => {
     if (!dragging) return;
     e.preventDefault();
     apply(e.clientX);
   });
-  ['pointerup', 'pointercancel'].forEach(ev => dial.addEventListener(ev, () => { dragging = false; }));
+  ['pointerup', 'pointercancel'].forEach(ev => marker.addEventListener(ev, () => {
+    dragging = false;
+    marker.classList.remove('dragging');
+  }));
 })();
 
 document.getElementById('showModeToggle').addEventListener('click', async function() {
@@ -1975,14 +1943,12 @@ try {
 
 setTimeout(() => {
   drawEqCurve(); drawLevelHistory(); updateSafeTime(); updateUI();
-  renderLimitDial(parseInt(document.getElementById('limitSlider').value),
-                   document.getElementById('limiterToggle').classList.contains('on'));
+  renderLimitMarker(parseInt(document.getElementById('limitSlider').value));
   sizeKnob(); renderKnob(parseFloat(document.getElementById('volSlider').value));
 }, 150);
 window.addEventListener('resize', () => {
   drawEqCurve(); drawLevelHistory();
-  renderLimitDial(parseInt(document.getElementById('limitSlider').value),
-                   document.getElementById('limiterToggle').classList.contains('on'));
+  renderLimitMarker(parseInt(document.getElementById('limitSlider').value));
   sizeKnob();
 });
 
