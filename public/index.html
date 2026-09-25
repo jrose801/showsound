@@ -38,7 +38,7 @@
     --amber: #FF9F2E; --amber-dim: rgba(255,159,46,0.14);
     --red: #FF4438; --green: #45D97A;
 
-    --text: #EDEFF1; --text-dim: #9AA2A8; --text-muted: #5A6167;
+    --text: #EDEFF1; --text-dim: #9AA2A8; --text-muted: #93999F;
     --radius: 18px; --radius-sm: 12px;
   }
   html, body {
@@ -133,7 +133,7 @@
   .nav-item.active { color: var(--text); }
   .nav-item.active svg { filter: drop-shadow(0 0 5px var(--glow-soft)); }
   .nav-item svg { width: 21px; height: 21px; }
-  .nav-item span { font-size: 9px; font-weight: 600; letter-spacing: .7px; text-transform: uppercase; }
+  .nav-item span { font-size: 10px; font-weight: 600; letter-spacing: .7px; text-transform: uppercase; }
 
   /* ── OVERLAYS ───────────────────────────────── */
   /* Base layout only — opacity/transform/.show/.hidden states live with the
@@ -193,17 +193,17 @@
      they read as two distinct things, not one continuous control. */
   .meter-divider { height: 1px; margin: 12px 9px 0; border-radius: 1px;
                    background: linear-gradient(90deg, transparent, rgba(0,0,0,.55) 15%, rgba(0,0,0,.55) 85%, transparent); }
-  .hist-caption { font-size: 8px; font-weight: 700; letter-spacing: 1px; color: var(--text-muted);
+  .hist-caption { font-size: 9.5px; font-weight: 700; letter-spacing: 1px; color: var(--text-muted);
                   text-transform: uppercase; padding: 10px 9px 0; }
   #levelHistCanvas { width: 100%; height: 64px; display: block; margin-top: 2px; }
   .db-readout { text-align: right; max-width: 92px;
-                font-size: 8px; font-weight: 700; color: var(--text-muted); letter-spacing: .8px; line-height: 1.3; }
+                font-size: 9.5px; font-weight: 700; color: var(--text-muted); letter-spacing: .8px; line-height: 1.3; }
   .db-readout .val { font-family: 'Space Grotesk', sans-serif; font-size: 27px; font-weight: 700;
                      color: var(--metal-1); display: block; line-height: 1;
                      text-shadow: 0 0 14px var(--glow-soft); transition: color .3s, text-shadow .3s; }
   .db-readout .val.warn { color: var(--amber); text-shadow: 0 0 14px rgba(255,159,46,.5); }
   .db-readout .val.danger { color: var(--red); text-shadow: 0 0 14px rgba(255,68,56,.55); }
-  .in-readout { font-size: 9px; color: var(--text-muted); letter-spacing: 1.2px; font-weight: 700; }
+  .in-readout { font-size: 10px; color: var(--text-muted); letter-spacing: 1.2px; font-weight: 700; }
   .in-readout b { font-family: 'Space Grotesk', sans-serif; font-size: 12px; color: var(--text-dim); font-weight: 700; display: block; margin-top: 2px; }
   .in-readout b.hot { color: var(--green); text-shadow: 0 0 9px rgba(69,217,122,.5); }
   .in-readout b.low { color: var(--amber); }
@@ -212,7 +212,7 @@
      never overlaps the MIC IN / dB numbers in the header above it — the two
      rows need to read as clearly separate things despite sitting close. */
   .db-meter-wrap { display: flex; align-items: center; gap: 8px; margin-top: 34px; padding: 0 9px 4px; }
-  .cap-label { font-size: 9px; font-weight: 700; letter-spacing: 1px; color: var(--text-muted);
+  .cap-label { font-size: 10px; font-weight: 700; letter-spacing: 1px; color: var(--text-muted);
                text-transform: uppercase; flex-shrink: 0; }
   /* Track gets taller and gets side breathing room so the marker handle has
      room to sit centered on the edge and still be fully grabbable. */
@@ -291,51 +291,52 @@
      venue — easy to swap to a cyan glow instead if that's wanted. */
   .knob-stage::before {
     content: ''; position: absolute; inset: -14%; border-radius: 50%;
-    background: radial-gradient(circle, var(--glow-soft) 0%, transparent 68%);
-    opacity: .5; pointer-events: none; transition: opacity .2s;
+    background: radial-gradient(circle, var(--cyan-glow) 0%, transparent 68%);
+    opacity: .38; pointer-events: none; transition: opacity .2s;
   }
-  .knob-stage.active::before { opacity: .85; }
+  .knob-stage.active::before { opacity: .7; }
   .knob-ring { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(135deg); }
-  .knob-ring .trk { fill: none; stroke: rgba(0,0,0,.6); stroke-width: 3.5; }
-  .knob-ring .val { fill: none; stroke: var(--metal-1); stroke-width: 3.5; stroke-linecap: round;
-                    filter: drop-shadow(0 0 8px var(--glow)); transition: stroke-dashoffset .06s linear; }
+  .knob-ring .trk { fill: none; stroke: rgba(255,255,255,.08); stroke-width: 3.5; }
+  .knob-ring .val { fill: none; stroke: var(--cyan); stroke-width: 3.5; stroke-linecap: round;
+                    filter: drop-shadow(0 0 9px var(--cyan-glow)); transition: stroke-dashoffset .06s linear; }
   .knob-ticks { position: absolute; inset: 0; width: 100%; height: 100%; }
-  .knob-ticks line { stroke: rgba(255,255,255,.17); stroke-width: 1.6; stroke-linecap: round; }
+  .knob-ticks line { stroke: rgba(255,255,255,.14); stroke-width: 1.6; stroke-linecap: round; }
+  /* Dark matte dial — deliberately black/charcoal with a glowing accent ring
+     around it, matching the reference pack's dominant material (Fueled, the
+     Dark LED Music Player kit, DELE) rather than a bright brushed-metal disc,
+     which read as out of step with every one of those references. */
   .knob {
     position: absolute; inset: 12%; border-radius: 50%;
     background:
-      radial-gradient(circle at 50% 42%, #F4F5F6 0%, #D3D7DB 38%, #9BA1A7 66%, #6E747A 100%);
+      radial-gradient(circle at 50% 38%, #33383D 0%, #24282C 42%, #17191B 78%, #0F1112 100%);
     box-shadow:
-      0 1px 0 rgba(255,255,255,.9) inset,
-      0 -3px 6px rgba(0,0,0,.3) inset,
-      0 9px 20px -5px rgba(0,0,0,.85),
-      0 0 0 1px rgba(0,0,0,.45);
+      0 1px 0 rgba(255,255,255,.08) inset,
+      0 -6px 14px rgba(0,0,0,.65) inset,
+      0 10px 26px -6px rgba(0,0,0,.9),
+      0 0 0 1px rgba(0,0,0,.6);
     cursor: grab;
   }
-  /* brushed-metal sheen */
+  /* soft specular sheen, not a brushed-metal pattern */
   .knob::before {
     content: ''; position: absolute; inset: 11px; border-radius: 50%;
-    background: conic-gradient(from 0deg,
-      rgba(255,255,255,.55), rgba(255,255,255,.05) 12%, rgba(255,255,255,.42) 25%,
-      rgba(255,255,255,.04) 38%, rgba(255,255,255,.5) 50%, rgba(255,255,255,.05) 62%,
-      rgba(255,255,255,.4) 75%, rgba(255,255,255,.04) 88%, rgba(255,255,255,.55));
-    mix-blend-mode: overlay; opacity: .75;
+    background: radial-gradient(circle at 40% 30%, rgba(255,255,255,.12) 0%, rgba(255,255,255,.03) 32%, transparent 60%);
+    pointer-events: none;
   }
   .knob::after {
     content: ''; position: absolute; inset: 11px; border-radius: 50%;
-    box-shadow: 0 1px 2px rgba(255,255,255,.5) inset, 0 -1px 3px rgba(0,0,0,.35) inset;
+    box-shadow: 0 1px 1px rgba(255,255,255,.1) inset, 0 -2px 6px rgba(0,0,0,.6) inset;
   }
   .knob-dot { position: absolute; left: 50%; top: 9%; width: 7px; height: 7px; margin-left: -3.5px;
-              border-radius: 50%; background: #23272A; box-shadow: 0 1px 1px rgba(255,255,255,.5); z-index: 2; }
+              border-radius: 50%; background: var(--cyan); box-shadow: 0 0 6px var(--cyan-glow), 0 0 2px #fff; z-index: 2; }
   .knob-stage.active .knob { cursor: grabbing; }
-  .knob-stage.active .knob-ring .val { filter: drop-shadow(0 0 9px var(--glow)); }
+  .knob-stage.active .knob-ring .val { filter: drop-shadow(0 0 13px var(--cyan-glow)); }
 
   .knob-meta { min-width: 0; }
-  .knob-meta h3 { font-family: 'Space Grotesk', sans-serif; font-size: 10px; font-weight: 700;
+  .knob-meta h3 { font-family: 'Space Grotesk', sans-serif; font-size: 10.5px; font-weight: 700;
                   color: var(--text-muted); letter-spacing: 1.6px; text-transform: uppercase; margin-bottom: 2px; }
   .knob-meta .num { font-family: 'Space Grotesk', sans-serif; font-size: clamp(40px, 12vw, 56px); font-weight: 700;
-                    line-height: 1; color: var(--metal-1); text-shadow: 0 0 20px var(--glow-soft); }
-  .unit { font-size: 10px; color: var(--text-muted); letter-spacing: 1.4px; margin-top: 4px; text-transform: uppercase; flex-shrink: 0; }
+                    line-height: 1; color: var(--metal-1); text-shadow: 0 0 20px var(--cyan-glow); }
+  .unit { font-size: 10.5px; color: var(--text-muted); letter-spacing: 1.4px; margin-top: 4px; text-transform: uppercase; flex-shrink: 0; }
 
   /* ── PRESET CHIPS ───────────────────────────── */
   .preset-row { flex-shrink: 0; }
@@ -369,7 +370,7 @@
   }
   .action-btn .lbl { font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700;
                      letter-spacing: 1.3px; position: relative; z-index: 2; }
-  .action-btn .sub { font-size: 9px; color: var(--text-muted); margin-top: 4px;
+  .action-btn .sub { font-size: 10px; color: var(--text-muted); margin-top: 4px;
                      letter-spacing: .5px; position: relative; z-index: 2; }
   .action-btn .fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0%; z-index: 1;
                       background: linear-gradient(90deg, rgba(255,255,255,.05), rgba(255,255,255,.16));
@@ -377,8 +378,11 @@
   .action-btn.armed { transform: translateY(1px);
     box-shadow: 0 3px 8px rgba(0,0,0,.8) inset, 0 0 22px var(--glow-soft); }
   .action-btn.armed .lbl { color: var(--metal-1); text-shadow: 0 0 10px var(--glow); }
-  .action-btn.duck.armed { box-shadow: 0 3px 8px rgba(0,0,0,.8) inset, 0 0 22px rgba(255,159,46,.45); }
-  .action-btn.duck.armed .lbl { color: var(--amber); text-shadow: 0 0 10px var(--amber); }
+  /* Ducking is a temporary mode, not a warning — uses the app's one primary
+     accent like every other "engaged" state (power button, live pill),
+     rather than the amber reserved for the hearing-safety cap. */
+  .action-btn.duck.armed { box-shadow: 0 3px 8px rgba(0,0,0,.8) inset, 0 0 22px var(--cyan-glow); }
+  .action-btn.duck.armed .lbl { color: var(--cyan); text-shadow: 0 0 10px var(--cyan); }
   .action-btn.done .lbl { color: var(--green); text-shadow: 0 0 10px rgba(69,217,122,.7); }
 
   /* ── POWER ──────────────────────────────────── */
@@ -403,12 +407,12 @@
 
   /* ── CARDS / SECTIONS ───────────────────────── */
   .section-label { padding: 18px 20px 9px; display: flex; align-items: center; justify-content: space-between; }
-  .section-label h3 { font-family: 'Space Grotesk', sans-serif; font-size: 10px; font-weight: 700;
+  .section-label h3 { font-family: 'Space Grotesk', sans-serif; font-size: 10.5px; font-weight: 700;
                       color: var(--text-muted); letter-spacing: 1.7px; text-transform: uppercase; }
-  .section-label .hint { font-family: 'Space Grotesk', sans-serif; font-size: 10px;
+  .section-label .hint { font-family: 'Space Grotesk', sans-serif; font-size: 10.5px;
                          color: var(--text-dim); letter-spacing: .6px; }
   .card { padding: 17px; margin: 0 14px 11px; }
-  .card-title { font-family: 'Space Grotesk', sans-serif; font-size: 9.5px; font-weight: 700;
+  .card-title { font-family: 'Space Grotesk', sans-serif; font-size: 10.5px; font-weight: 700;
                 color: var(--text-muted); letter-spacing: 1.4px; text-transform: uppercase;
                 margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
   .card-title .sub { font-size: 12px; font-weight: 700; text-transform: none; letter-spacing: .3px;
@@ -503,10 +507,14 @@
     position: absolute; left: 50%; width: 5px; margin-left: -2.5px; z-index: 1;
     border-radius: 999px; pointer-events: none; transition: top .05s linear, height .05s linear;
   }
+  /* Boost/cut direction is already clear from which side of the center
+     detent the fill grows and the +/- on the number above it, so both use
+     the same neutral fill — just dimmer for cut — rather than reaching for
+     a color that would otherwise mean "approaching the safety cap". */
   .eq-fill.boost { background: linear-gradient(0deg, var(--glow-soft), var(--metal-1));
                     box-shadow: 0 0 8px var(--glow-soft); }
-  .eq-fill.cut { background: linear-gradient(180deg, rgba(255,159,46,.25), var(--amber));
-                 box-shadow: 0 0 8px rgba(255,159,46,.4); }
+  .eq-fill.cut { background: linear-gradient(180deg, rgba(255,255,255,.06), var(--metal-3));
+                 box-shadow: 0 0 6px rgba(255,255,255,.15); }
   /* centre detent line */
   .eq-slider-wrap::after {
     content: ''; position: absolute; left: 50%; top: 50%; width: 19px; height: 1px; margin-left: -9.5px;
@@ -525,23 +533,26 @@
     box-shadow: 0 1px 0 rgba(255,255,255,.95) inset, 0 -1px 2px rgba(0,0,0,.35) inset,
                 0 4px 9px -2px rgba(0,0,0,.85), 0 0 13px var(--glow-soft);
   }
-  .eq-freq { font-size: 10px; font-weight: 700; color: var(--text-muted); text-align: center;
+  .eq-freq { font-size: 10.5px; font-weight: 700; color: var(--text-muted); text-align: center;
              line-height: 1.3; letter-spacing: .4px; }
-  .eq-freq span { display: block; font-size: 8.5px; font-weight: 500; opacity: .55; letter-spacing: .3px; }
+  .eq-freq span { display: block; font-size: 9.5px; font-weight: 500; opacity: .55; letter-spacing: .3px; }
   .eq-curve-wrap { padding: 8px 0 14px; box-shadow: 0 -1px 0 rgba(0,0,0,.55), 0 0 0 0 transparent; }
   #eqCurveCanvas { width: 100%; height: 44px; display: block; }
 
   /* ── DOSE ───────────────────────────────────── */
   .dose-card { padding: 22px; margin: 0 14px 11px; text-align: center; }
+  /* Neutral by default, matching every other big numeric readout — this
+     isn't currently wired to a caution/danger threshold, so it shouldn't
+     wear the safety-warning color permanently regardless of state. */
   .dose-timer { font-family: 'Space Grotesk', sans-serif; font-size: 46px; font-weight: 700;
-                color: var(--amber); line-height: 1; margin-bottom: 8px;
-                text-shadow: 0 0 22px rgba(255,159,46,.4); }
+                color: var(--metal-1); line-height: 1; margin-bottom: 8px;
+                text-shadow: 0 0 22px var(--glow-soft); }
   .dose-label { font-size: 11.5px; color: var(--text-dim); letter-spacing: .4px; }
   .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; margin: 0 14px 11px; }
   .stat { padding: 16px; text-align: center; }
   .stat .v { font-family: 'Space Grotesk', sans-serif; font-size: 21px; font-weight: 700;
              color: var(--metal-1); text-shadow: 0 0 12px var(--glow-soft); }
-  .stat .k { font-size: 9.5px; color: var(--text-muted); margin-top: 5px;
+  .stat .k { font-size: 10.5px; color: var(--text-muted); margin-top: 5px;
              letter-spacing: 1.1px; text-transform: uppercase; }
 
   /* ── DIAGNOSTICS ────────────────────────────── */
@@ -1266,7 +1277,7 @@ function updateUI() {
     pill.classList.remove('active');
     document.getElementById('statusText').textContent = audioCtx ? 'Paused' : 'Ready';
     btn.classList.remove('active');
-    btn.querySelector('svg').setAttribute('stroke', '#8888AA');
+    btn.querySelector('svg').setAttribute('stroke', '#93999F');
     if (hint) hint.textContent = audioCtx ? 'Tap to resume' : 'Mic not started';
   }
 }
