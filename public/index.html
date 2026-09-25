@@ -189,8 +189,12 @@
 
   .meter-card { position: relative; padding: 4px 6px 13px; }
   .meter-head { display: flex; align-items: flex-start; justify-content: space-between; padding: 0 9px; }
+  /* Separates the limiter row above from the level-history graph below so
+     they read as two distinct things, not one continuous control. */
+  .meter-divider { height: 1px; margin: 12px 9px 0; border-radius: 1px;
+                   background: linear-gradient(90deg, transparent, rgba(0,0,0,.55) 15%, rgba(0,0,0,.55) 85%, transparent); }
   .hist-caption { font-size: 8px; font-weight: 700; letter-spacing: 1px; color: var(--text-muted);
-                  text-transform: uppercase; padding: 8px 9px 0; }
+                  text-transform: uppercase; padding: 10px 9px 0; }
   #levelHistCanvas { width: 100%; height: 64px; display: block; margin-top: 2px; }
   .db-readout { text-align: right; max-width: 92px;
                 font-size: 8px; font-weight: 700; color: var(--text-muted); letter-spacing: .8px; line-height: 1.3; }
@@ -204,7 +208,12 @@
   .in-readout b.hot { color: var(--green); text-shadow: 0 0 9px rgba(69,217,122,.5); }
   .in-readout b.low { color: var(--amber); }
 
-  .db-meter-wrap { display: flex; align-items: center; gap: 10px; margin-top: 14px; padding: 0 9px 6px; }
+  /* Enough top margin that the value bubble (which floats above the marker)
+     never overlaps the MIC IN / dB numbers in the header above it — the two
+     rows need to read as clearly separate things despite sitting close. */
+  .db-meter-wrap { display: flex; align-items: center; gap: 8px; margin-top: 34px; padding: 0 9px 4px; }
+  .cap-label { font-size: 9px; font-weight: 700; letter-spacing: 1px; color: var(--text-muted);
+               text-transform: uppercase; flex-shrink: 0; }
   /* Track gets taller and gets side breathing room so the marker handle has
      room to sit centered on the edge and still be fully grabbable. */
   .db-track { flex: 1; min-width: 0; height: 9px; position: relative; overflow: visible; }
@@ -273,10 +282,23 @@
      egg-shaped because width and height were computed independently. JS
      reads the actual leftover space and sets width=height explicitly. */
   .knob-stage { position: relative; touch-action: none; margin-top: 6px; flex-shrink: 0; }
+  /* Ambient halo behind the whole ring — the diffuse bloom the reference
+     LED-dial shots all share (Fueled's purple ring, the Dark LED kit's cyan
+     ring). A drop-shadow on the arc alone reads as a highlight; this reads
+     as a light source. Kept in the app's existing monochrome/glow-soft
+     language rather than switching the arc to a color accent, since white
+     rim-light was chosen earlier specifically for legibility in a dark
+     venue — easy to swap to a cyan glow instead if that's wanted. */
+  .knob-stage::before {
+    content: ''; position: absolute; inset: -14%; border-radius: 50%;
+    background: radial-gradient(circle, var(--glow-soft) 0%, transparent 68%);
+    opacity: .5; pointer-events: none; transition: opacity .2s;
+  }
+  .knob-stage.active::before { opacity: .85; }
   .knob-ring { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(135deg); }
-  .knob-ring .trk { fill: none; stroke: rgba(0,0,0,.55); stroke-width: 3; }
-  .knob-ring .val { fill: none; stroke: var(--metal-1); stroke-width: 3; stroke-linecap: round;
-                    filter: drop-shadow(0 0 5px var(--glow)); transition: stroke-dashoffset .06s linear; }
+  .knob-ring .trk { fill: none; stroke: rgba(0,0,0,.6); stroke-width: 3.5; }
+  .knob-ring .val { fill: none; stroke: var(--metal-1); stroke-width: 3.5; stroke-linecap: round;
+                    filter: drop-shadow(0 0 8px var(--glow)); transition: stroke-dashoffset .06s linear; }
   .knob-ticks { position: absolute; inset: 0; width: 100%; height: 100%; }
   .knob-ticks line { stroke: rgba(255,255,255,.17); stroke-width: 1.6; stroke-linecap: round; }
   .knob {
@@ -370,8 +392,11 @@
   }
   .power-btn.active {
     background: radial-gradient(circle at 50% 36%, #3B4146, #212528 70%);
+    /* A crisp lit ring, not just a diffuse blur — closer to the reference
+       illuminated power buttons, where the on-state reads as a distinct
+       glowing outline rather than a soft halo alone. */
     box-shadow: 0 1px 0 rgba(255,255,255,.2) inset, 0 -2px 5px rgba(0,0,0,.5) inset,
-                0 0 26px var(--cyan-glow), 0 8px 18px -5px rgba(0,0,0,.85);
+                0 0 0 1.5px var(--cyan), 0 0 26px var(--cyan-glow), 0 8px 18px -5px rgba(0,0,0,.85);
   }
   .power-btn.active svg { filter: drop-shadow(0 0 7px var(--cyan)); }
 
@@ -426,9 +451,23 @@
     content: ''; position: absolute; width: 22px; height: 22px; border-radius: 50%; top: 3px; left: 3px;
     background: radial-gradient(circle at 50% 35%, #FAFAFB, #BFC4C9 50%, #787E83 100%);
     box-shadow: 0 1px 0 rgba(255,255,255,.85) inset, 0 3px 7px -1px rgba(0,0,0,.8);
-    transition: left .22s cubic-bezier(.4,1.4,.5,1);
+    transition: left .22s cubic-bezier(.4,1.4,.5,1), background .18s;
   }
   .toggle.on::after { left: 25px; }
+  /* Lit LED dot on the thumb when on — the small illuminated indicator the
+     reference toggle pill carries baked into the puck itself. Layered as a
+     second background on the existing thumb gradient, so it moves with the
+     thumb for free with no extra markup. */
+  .toggle.on::after {
+    background:
+      radial-gradient(circle at 50% 35%, var(--cyan) 0%, var(--cyan) 13%, transparent 15%),
+      radial-gradient(circle at 50% 35%, #FAFAFB, #BFC4C9 50%, #787E83 100%);
+  }
+  .toggle.on.amber-toggle::after {
+    background:
+      radial-gradient(circle at 50% 35%, var(--amber) 0%, var(--amber) 13%, transparent 15%),
+      radial-gradient(circle at 50% 35%, #FAFAFB, #BFC4C9 50%, #787E83 100%);
+  }
 
   .reveal { max-height: 0; overflow: hidden; opacity: 0;
             transition: max-height .28s ease, opacity .22s ease, margin .28s ease; }
@@ -456,10 +495,22 @@
     background: linear-gradient(180deg, #131618, #1B1F22);
     box-shadow: 0 2px 5px rgba(0,0,0,.8) inset, 0 -1px 0 var(--edge) inset;
   }
+  /* Glowing fill from the center detent to the thumb — the lit vertical
+     line the reference fader kits build around. Doubles as a boost/cut
+     indicator: it grows upward in white for a boost, downward in amber for
+     a cut, so the direction is readable without reading the number. */
+  .eq-fill {
+    position: absolute; left: 50%; width: 5px; margin-left: -2.5px; z-index: 1;
+    border-radius: 999px; pointer-events: none; transition: top .05s linear, height .05s linear;
+  }
+  .eq-fill.boost { background: linear-gradient(0deg, var(--glow-soft), var(--metal-1));
+                    box-shadow: 0 0 8px var(--glow-soft); }
+  .eq-fill.cut { background: linear-gradient(180deg, rgba(255,159,46,.25), var(--amber));
+                 box-shadow: 0 0 8px rgba(255,159,46,.4); }
   /* centre detent line */
   .eq-slider-wrap::after {
     content: ''; position: absolute; left: 50%; top: 50%; width: 19px; height: 1px; margin-left: -9.5px;
-    background: rgba(255,255,255,.18);
+    background: rgba(255,255,255,.18); z-index: 2;
   }
   input[type=range].eq-slider {
     -webkit-appearance: none; appearance: none;
@@ -679,12 +730,31 @@
         <div class="error-banner" id="errorBanner"></div>
 
         <!-- TIER 2 · glanceable status. Flat: nothing here is tappable
-             except the limiter dial, which gets its own raised treatment. -->
+             except the limiter marker, which gets its own raised treatment.
+             The cap row sits directly under the dB number it governs, with
+             a divider before the graph below — it was previously sitting
+             right under the history trace, which visually read as if it
+             belonged to the graph rather than to the output number above. -->
         <div class="meter-card flat">
           <div class="meter-head">
             <div class="in-readout">MIC IN<b id="inVal">—</b></div>
             <div class="db-readout"><span class="val" id="dbVal">—</span>dB IN YOUR EARS</div>
           </div>
+
+          <!-- The cap marker IS the control — tap and hold, drag anywhere
+               along the bar, release to set. A value bubble sits above it
+               at all times so the current cap reads at a glance. -->
+          <div class="db-meter-wrap">
+            <span class="cap-label">CAP</span>
+            <div class="db-track well" id="dbTrack">
+              <div class="db-fill" id="dbFill"></div>
+              <div class="db-limit-marker" id="limitMarker" style="left:55.6%">
+                <div class="limit-bubble" id="limitBubble">85<span>dB</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="meter-divider"></div>
 
           <!-- Rolling history trace of OUTPUT — what's actually reaching your
                earbuds, measured after the limiter, not the raw room. The cap
@@ -696,20 +766,6 @@
                getting close. -->
           <div class="hist-caption">OUTPUT LAST 12S · CAP IS THE CEILING</div>
           <canvas id="levelHistCanvas"></canvas>
-
-          <!-- The cap marker IS the control now — no separate slider beside
-               it. Tap and hold the marker, drag anywhere along the bar,
-               release to set. A value bubble appears above your thumb the
-               moment you touch it, so you're reading the number the whole
-               time you're dragging instead of guessing by position. -->
-          <div class="db-meter-wrap">
-            <div class="db-track well" id="dbTrack">
-              <div class="db-fill" id="dbFill"></div>
-              <div class="db-limit-marker" id="limitMarker" style="left:55.6%">
-                <div class="limit-bubble" id="limitBubble">85<span>dB</span></div>
-              </div>
-            </div>
-          </div>
         </div>
 
         <!-- TIER 1 · the hero: what you touch most, biggest target.
@@ -1146,6 +1202,7 @@ function commitAutoTune() {
     document.getElementById('eqSlider' + i).value = corr;
     document.getElementById('eqVal' + i).textContent = corr > 0 ? '+' + corr : corr;
     setFilterGain(i, corr);
+    renderEqFill(i, corr);
   });
   drawEqCurve();
   document.querySelectorAll('.preset-chip').forEach(c => c.classList.remove('active'));
@@ -1531,17 +1588,41 @@ BANDS.forEach((band, i) => {
   col.className = 'eq-band';
   col.innerHTML =
     '<div class="eq-band-val" id="eqVal' + i + '">0</div>' +
-    '<div class="eq-slider-wrap"><input type="range" class="eq-slider" id="eqSlider' + i + '" min="-12" max="12" value="0" step="0.5"></div>' +
+    '<div class="eq-slider-wrap"><div class="eq-fill" id="eqFill' + i + '"></div>' +
+    '<input type="range" class="eq-slider" id="eqSlider' + i + '" min="-12" max="12" value="0" step="0.5"></div>' +
     '<div class="eq-freq">' + band.label + '<span>' + band.name + '</span></div>';
   eqGrid.appendChild(col);
   col.querySelector('#eqSlider' + i).addEventListener('input', function() {
     const v = parseFloat(this.value);
     document.getElementById('eqVal' + i).textContent = v > 0 ? '+' + v : v;
     setFilterGain(i, v);
+    renderEqFill(i, v);
     drawEqCurve();
     document.querySelectorAll('.preset-chip').forEach(c => c.classList.remove('active'));
   });
+  renderEqFill(i, 0);
 });
+
+// Lights the vertical track from the center detent toward the thumb —
+// white climbing upward for a boost, amber climbing downward for a cut —
+// so direction reads at a glance, not just from the +/- on the number.
+// Geometry matches the CSS fixed layout: 136px wrap, 4px inset top/bottom,
+// so the usable track is 128px with its center at 68px from the wrap top.
+function renderEqFill(i, v) {
+  const fill = document.getElementById('eqFill' + i);
+  if (!fill) return;
+  const TRACK_TOP = 4, TRACK_H = 128, CENTER = TRACK_TOP + TRACK_H / 2;
+  const thumbY = TRACK_TOP + ((12 - v) / 24) * TRACK_H;
+  if (v >= 0) {
+    fill.className = 'eq-fill boost';
+    fill.style.top = thumbY + 'px';
+    fill.style.height = Math.max(0, CENTER - thumbY) + 'px';
+  } else {
+    fill.className = 'eq-fill cut';
+    fill.style.top = CENTER + 'px';
+    fill.style.height = Math.max(0, thumbY - CENTER) + 'px';
+  }
+}
 
 function applyPreset(name) {
   const p = PRESETS[name].v;
@@ -1549,6 +1630,7 @@ function applyPreset(name) {
     document.getElementById('eqSlider' + i).value = p[i];
     document.getElementById('eqVal' + i).textContent = p[i] > 0 ? '+' + p[i] : p[i];
     setFilterGain(i, p[i]);
+    renderEqFill(i, p[i]);
   });
   drawEqCurve();
 }
