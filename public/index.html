@@ -268,15 +268,17 @@
 
   /* ── ROTARY KNOB ────────────────────────────── */
   /* Flat card: the card itself isn't touchable, only the knob inside it is.
-     Stacked layout — big number up top where a dragging thumb can't cover
-     it, knob centered below and sized to actually fill the leftover space
-     instead of sharing a cramped row with the label. */
+     The value now lives inside the dial (knob-center, below) rather than
+     in a separate label row above it, so the dial gets that space back —
+     a bigger dial, Nest-style. Dragging still works fine with the readout
+     in the center: the drag is a plain vertical swipe anywhere on the
+     stage, not a rotary grip, so a finger starting near the rim never has
+     to sit on top of the number to move it. */
   .knob-card {
     padding: 10px 20px 18px; display: flex; flex-direction: column;
     align-items: center; justify-content: center; gap: 2px;
     min-height: 0; /* flex child — must be allowed to shrink so the JS sizing below has a real box to measure */
   }
-  .knob-meta { text-align: center; flex-shrink: 0; }
   /* Sized in JS (sizeKnob()), not CSS aspect-ratio: inside a flex column that
      can shrink, aspect-ratio doesn't reliably hold — the box was landing
      egg-shaped because width and height were computed independently. JS
@@ -330,13 +332,31 @@
               border-radius: 50%; background: var(--cyan); box-shadow: 0 0 6px var(--cyan-glow), 0 0 2px #fff; z-index: 2; }
   .knob-stage.active .knob { cursor: grabbing; }
   .knob-stage.active .knob-ring .val { filter: drop-shadow(0 0 13px var(--cyan-glow)); }
+  /* Paused/not-started: dial reads as visibly inactive until tapped again,
+     without hiding the value — only the ring's glow and halo dim. */
+  .knob-stage:not(.live):not(.active)::before { opacity: .16; }
+  .knob-stage:not(.live):not(.active) .knob-ring .val { opacity: .4; filter: none; }
 
-  .knob-meta { min-width: 0; }
-  .knob-meta h3 { font-family: 'Space Grotesk', sans-serif; font-size: 10.5px; font-weight: 700;
-                  color: var(--text-muted); letter-spacing: 1.6px; text-transform: uppercase; margin-bottom: 2px; }
-  .knob-meta .num { font-family: 'Space Grotesk', sans-serif; font-size: clamp(40px, 12vw, 56px); font-weight: 700;
-                    line-height: 1; color: var(--metal-1); text-shadow: 0 0 20px var(--cyan-glow); }
-  .unit { font-size: 10.5px; color: var(--text-muted); letter-spacing: 1.4px; margin-top: 4px; text-transform: uppercase; flex-shrink: 0; }
+  /* Value display inside the dial, Nest-thermostat style. Sits centered
+     over the knob face; pointer-events:none so it never interferes with
+     the tap/hold/drag handling on the stage beneath it. */
+  .knob-center { position: absolute; inset: 12%; border-radius: 50%; z-index: 3;
+                 display: flex; align-items: center; justify-content: center;
+                 pointer-events: none; text-align: center; }
+  .vol-display, .duck-display { display: flex; flex-direction: column; align-items: center; min-width: 0;
+                                 transition: opacity .16s; }
+  .duck-display { position: absolute; inset: 0; justify-content: center; opacity: 0; color: var(--cyan); }
+  .knob-stage.ducking .vol-display { opacity: 0; }
+  .knob-stage.ducking .duck-display { opacity: 1; }
+  .knob-stage.ducking .knob { filter: brightness(.72); }
+  .vol-display h3 { font-family: 'Space Grotesk', sans-serif; font-size: 10px; font-weight: 700;
+                    color: var(--text-muted); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 2px; }
+  .vol-display .num { font-family: 'Space Grotesk', sans-serif; font-size: clamp(32px, 9.5vw, 46px); font-weight: 700;
+                       line-height: 1; color: var(--metal-1); text-shadow: 0 0 20px var(--cyan-glow); }
+  .duck-display svg { filter: drop-shadow(0 0 8px var(--cyan-glow)); margin-bottom: 4px; }
+  .duck-display .lbl { font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 700;
+                        letter-spacing: 1.5px; text-transform: uppercase; }
+  .unit { font-size: 10px; color: var(--text-muted); letter-spacing: .8px; margin-top: 4px; text-transform: uppercase; flex-shrink: 0; }
 
   /* ── PRESET CHIPS ───────────────────────────── */
   .preset-row { flex-shrink: 0; }
@@ -360,6 +380,7 @@
 
   /* ── HOLD BUTTONS ───────────────────────────── */
   .action-row { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; flex-shrink: 0; }
+  .action-row.single { grid-template-columns: 1fr; }
   .action-btn {
     position: relative; overflow: hidden; text-align: center; cursor: pointer;
     padding: 15px 10px; border-radius: var(--radius-sm);
@@ -378,31 +399,12 @@
   .action-btn.armed { transform: translateY(1px);
     box-shadow: 0 3px 8px rgba(0,0,0,.8) inset, 0 0 22px var(--glow-soft); }
   .action-btn.armed .lbl { color: var(--metal-1); text-shadow: 0 0 10px var(--glow); }
-  /* Ducking is a temporary mode, not a warning — uses the app's one primary
-     accent like every other "engaged" state (power button, live pill),
-     rather than the amber reserved for the hearing-safety cap. */
-  .action-btn.duck.armed { box-shadow: 0 3px 8px rgba(0,0,0,.8) inset, 0 0 22px var(--cyan-glow); }
-  .action-btn.duck.armed .lbl { color: var(--cyan); text-shadow: 0 0 10px var(--cyan); }
   .action-btn.done .lbl { color: var(--green); text-shadow: 0 0 10px rgba(69,217,122,.7); }
 
-  /* ── POWER ──────────────────────────────────── */
+  /* ── HEADER ─────────────────────────────────── */
+  /* Power now lives on the dial itself (tap to pause/resume) — this row is
+     just the live/ready status readout. */
   .head-actions { display: flex; align-items: center; gap: 11px; }
-  .power-btn {
-    width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
-    cursor: pointer; transition: all .22s;
-    background: radial-gradient(circle at 50% 36%, #33383D, #1D2023 70%);
-    box-shadow: 0 1px 0 var(--edge-hi) inset, 0 -2px 5px rgba(0,0,0,.55) inset,
-                0 8px 18px -5px rgba(0,0,0,.85);
-  }
-  .power-btn.active {
-    background: radial-gradient(circle at 50% 36%, #3B4146, #212528 70%);
-    /* A crisp lit ring, not just a diffuse blur — closer to the reference
-       illuminated power buttons, where the on-state reads as a distinct
-       glowing outline rather than a soft halo alone. */
-    box-shadow: 0 1px 0 rgba(255,255,255,.2) inset, 0 -2px 5px rgba(0,0,0,.5) inset,
-                0 0 0 1.5px var(--cyan), 0 0 26px var(--cyan-glow), 0 8px 18px -5px rgba(0,0,0,.85);
-  }
-  .power-btn.active svg { filter: drop-shadow(0 0 7px var(--cyan)); }
 
 
   /* ── CARDS / SECTIONS ───────────────────────── */
@@ -721,11 +723,6 @@
   <div class="topbar">
     <div class="logo">Show<span>Sound</span></div>
     <div class="head-actions">
-      <div class="power-btn" id="powerBtn" title="Pause / resume">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B9196" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 2v6M6.3 5.3a8 8 0 1 0 11.4 0"/>
-        </svg>
-      </div>
       <div class="status-pill" id="statusPill">
         <div class="status-dot" id="statusDot"></div>
         <span id="statusText">Ready</span>
@@ -780,13 +777,12 @@
         </div>
 
         <!-- TIER 1 · the hero: what you touch most, biggest target.
-             Number sits above the knob so a dragging thumb never covers
-             the value you're trying to watch while you drag. -->
+             The dial itself now carries all three of its own controls:
+             tap = power, hold = duck, drag = volume — so the value moves
+             inside the dial where a Nest-style readout belongs, freeing
+             the vertical space that used to hold a separate label row for
+             a visibly bigger dial. -->
         <div class="knob-card flat">
-          <div class="knob-meta">
-            <h3>Volume</h3>
-            <div class="num" id="volLabel">100</div>
-          </div>
           <div class="knob-stage" id="volKnob">
             <svg class="knob-ticks" viewBox="0 0 116 116" aria-hidden="true"></svg>
             <svg class="knob-ring" viewBox="0 0 116 116" aria-hidden="true">
@@ -794,19 +790,25 @@
               <circle class="val" id="volArc" cx="58" cy="58" r="52"/>
             </svg>
             <div class="knob"><div class="knob-dot"></div></div>
+            <div class="knob-center">
+              <div class="vol-display">
+                <h3>Volume</h3>
+                <div class="num" id="volLabel">100</div>
+              </div>
+              <div class="duck-display">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M23 9 17 15M17 9l6 6"/></svg>
+                <div class="lbl">Ducked</div>
+              </div>
+            </div>
           </div>
-          <div class="unit">DRAG ↑ ↓</div>
+          <div class="unit">TAP power · HOLD duck · DRAG volume</div>
           <input type="range" id="volSlider" min="0" max="100" value="100" style="display:none">
         </div>
 
         <!-- TIER 2 · urgent, lowest = easiest thumb reach. Venue presets
-             moved to the EQ tab, next to the curve they actually change,
-             so this row is now purely the two hold actions. -->
-        <div class="action-row">
-          <div class="action-btn duck surface" id="duckBtn">
-            <div class="lbl">DUCK</div>
-            <div class="sub">hold to talk</div>
-          </div>
+             moved to the EQ tab, and DUCK moved onto the dial itself, so
+             this row is now purely the one remaining hold action. -->
+        <div class="action-row single">
           <div class="action-btn surface" id="tuneBtn">
             <div class="fill" id="tuneFill"></div>
             <div class="lbl" id="tuneLbl">AUTO TUNE</div>
@@ -1265,20 +1267,15 @@ function resumeAudio() { if (audioCtx) audioCtx.resume(); isPlaying = true; upda
 // ── UI STATE ──
 function updateUI() {
   const pill = document.getElementById('statusPill');
-  const btn = document.getElementById('powerBtn');
-  const hint = document.getElementById('powerHint'); // removed from header layout
+  const stage = document.getElementById('volKnob');
   if (isPlaying) {
     pill.classList.add('active');
     document.getElementById('statusText').textContent = 'Live';
-    btn.classList.add('active');
-    btn.querySelector('svg').setAttribute('stroke', '#00E5FF');
-    if (hint) hint.textContent = 'Tap to pause';
+    if (stage) stage.classList.add('live');
   } else {
     pill.classList.remove('active');
     document.getElementById('statusText').textContent = audioCtx ? 'Paused' : 'Ready';
-    btn.classList.remove('active');
-    btn.querySelector('svg').setAttribute('stroke', '#93999F');
-    if (hint) hint.textContent = audioCtx ? 'Tap to resume' : 'Mic not started';
+    if (stage) stage.classList.remove('live');
   }
 }
 function setStatus(t) { document.getElementById('statusText').textContent = t; }
@@ -1855,14 +1852,7 @@ document.getElementById('showModeOk').addEventListener('click', () => {
   document.getElementById('showModeModal').classList.remove('show');
 });
 
-// ── DUCK: momentary, hold-to-engage ──
-(function () {
-  const btn = document.getElementById('duckBtn');
-  const on  = (e) => { e.preventDefault(); if (!audioCtx) return; btn.classList.add('armed'); setDuck(true); };
-  const off = (e) => { e.preventDefault(); btn.classList.remove('armed'); setDuck(false); };
-  btn.addEventListener('pointerdown', on);
-  ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => btn.addEventListener(ev, off));
-})();
+// DUCK now lives on the volume dial itself (hold-to-duck) — see initKnob().
 
 // ── AUTO TUNE: hold to fill, commits at 3s, release early cancels ──
 (function () {
@@ -1918,10 +1908,7 @@ document.getElementById('showModeOk').addEventListener('click', () => {
   ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => btn.addEventListener(ev, cancel));
 })();
 
-document.getElementById('powerBtn').addEventListener('click', () => {
-  if (!audioCtx) return;
-  if (isPlaying) pauseAudio(); else resumeAudio();
-});
+// Power toggle now lives on the volume dial itself (tap) — see initKnob().
 
 document.getElementById('startBtn').addEventListener('click', async (e) => {
   const sb = e.currentTarget;
@@ -1957,17 +1944,20 @@ function renderKnob(pct) {
 // a box inside a shrinking flex column — width and height were each being
 // resolved independently. Measuring the real leftover space and forcing a
 // square is the only way that's actually reliable across iOS Safari.
+// The value readout now lives inside the dial rather than in its own row
+// above it, so only the hint line below eats into the available height —
+// this alone makes the dial noticeably bigger than before. Cap raised
+// slightly (260 → 300) to take advantage of that on taller phones.
 function sizeKnob() {
   const card = document.querySelector('.knob-card');
   const stage = document.getElementById('volKnob');
   if (!card || !stage) return;
-  const meta = card.querySelector('.knob-meta');
   const unit = card.querySelector('.unit');
   const cardH = card.clientHeight;
-  const usedH = (meta ? meta.offsetHeight : 0) + (unit ? unit.offsetHeight : 0) + 20; // padding/gaps
+  const usedH = (unit ? unit.offsetHeight : 0) + 16; // padding/gaps
   const availH = Math.max(0, cardH - usedH);
   const availW = card.clientWidth - 40; // card horizontal padding
-  const side = Math.max(120, Math.min(260, Math.min(availH, availW)));
+  const side = Math.max(140, Math.min(300, Math.min(availH, availW)));
   stage.style.width = side + 'px';
   stage.style.height = side + 'px';
 }
@@ -1992,18 +1982,47 @@ function sizeKnob() {
   }
   ticks.innerHTML = marks;
 
-  let dragging = false, startY = 0, startVal = 0;
+  // The dial now resolves three gestures from the same pointerdown:
+  //   - released quickly with barely any movement  → TAP    → power on/off
+  //   - held still past HOLD_MS without moving      → HOLD   → duck (momentary)
+  //   - moved past the slop threshold before either  → DRAG   → adjust volume
+  // Whichever one is recognized "wins" for that touch; they can't combine,
+  // same as a real dial only doing one thing at a time.
+  const TAP_SLOP = 10;     // px of movement still considered a stationary press
+  const HOLD_MS = 320;     // stationary press longer than this becomes "duck"
+
+  let dragging = false, startY = 0, startX = 0, startVal = 0;
+  let holdTimer = null, resolvedHold = false, resolvedDrag = false;
+
+  function clearHoldTimer() { if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; } }
 
   stage.addEventListener('pointerdown', (e) => {
     e.preventDefault();
-    dragging = true;
-    startY = e.clientY;
+    startX = e.clientX; startY = e.clientY;
     startVal = parseFloat(input.value);
-    stage.classList.add('active');
+    dragging = false; resolvedHold = false; resolvedDrag = false;
     try { stage.setPointerCapture(e.pointerId); } catch (err) {}
+    clearHoldTimer();
+    holdTimer = setTimeout(() => {
+      if (resolvedDrag) return; // already dragging — this touch is spoken for
+      resolvedHold = true;
+      stage.classList.add('ducking');
+      if (audioCtx) setDuck(true);
+    }, HOLD_MS);
   });
 
   stage.addEventListener('pointermove', (e) => {
+    if (resolvedHold) return; // committed to duck; ignore movement until release
+    const dx = e.clientX - startX, dy = e.clientY - startY;
+    if (!resolvedDrag && Math.hypot(dx, dy) > TAP_SLOP) {
+      resolvedDrag = true;
+      dragging = true;
+      clearHoldTimer();
+      stage.classList.add('active');
+      // re-baseline from here so the knob doesn't jump by the slop distance
+      startY = e.clientY;
+      startVal = parseFloat(input.value);
+    }
     if (!dragging) return;
     e.preventDefault();
     const delta = (startY - e.clientY) / KNOB_DRAG_PX * 100;
@@ -2015,7 +2034,17 @@ function sizeKnob() {
   });
 
   ['pointerup', 'pointercancel', 'pointerleave'].forEach((ev) =>
-    stage.addEventListener(ev, () => { dragging = false; stage.classList.remove('active'); })
+    stage.addEventListener(ev, () => {
+      clearHoldTimer();
+      if (resolvedHold) {
+        stage.classList.remove('ducking');
+        setDuck(false);
+      } else if (!resolvedDrag && audioCtx) {
+        if (isPlaying) pauseAudio(); else resumeAudio();
+      }
+      dragging = false; resolvedDrag = false; resolvedHold = false;
+      stage.classList.remove('active');
+    })
   );
 
   sizeKnob();
