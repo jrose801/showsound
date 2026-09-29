@@ -49,10 +49,22 @@
     overscroll-behavior: none;
   }
 
+  /* Faint etched-panel line art behind the whole app — original audio/live-show
+     motifs (mic, EQ rack, waveform, stage truss, speaker stack, headphones,
+     VU arc), drawn at very low opacity so it reads as texture on the panel,
+     never competing with real content. Sits under the existing top vignette
+     and above the flat background color; only visible through the app's
+     transparent .flat surfaces and gaps, same way the reference hardware's
+     etched artwork only shows in the panel's negative space around its
+     actual controls. */
   .app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; overflow: hidden;
-         background:
+         background-color: var(--bg);
+         background-image:
            radial-gradient(120% 60% at 50% -10%, #272C31 0%, transparent 60%),
-           var(--bg); }
+           url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MDAgOTAwIiBmaWxsPSJub25lIj4KICA8ZyBzdHJva2U9IiNGRkZGRkYiIHN0cm9rZS13aWR0aD0iMS4yIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIG9wYWNpdHk9IjAuMDciPgoKICAgIDwhLS0gbWljLCB1cHBlci1sZWZ0IC0tPgogICAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNDYsODYpIj4KICAgICAgPHJlY3QgeD0iLTExIiB5PSItMjYiIHdpZHRoPSIyMiIgaGVpZ2h0PSI0MCIgcng9IjExIi8+CiAgICAgIDxwYXRoIGQ9Ik0tMjAsLTIgYTIwLDIwIDAgMCAwIDQwLDAiLz4KICAgICAgPGxpbmUgeDE9IjAiIHkxPSIxOCIgeDI9IjAiIHkyPSIzMiIvPgogICAgICA8bGluZSB4MT0iLTEzIiB5MT0iMzIiIHgyPSIxMyIgeTI9IjMyIi8+CiAgICAgIDxsaW5lIHgxPSItMTEiIHkxPSItMTYiIHgyPSIxMSIgeTI9Ii0xNiIvPgogICAgICA8bGluZSB4MT0iLTExIiB5MT0iLTgiIHgyPSIxMSIgeTI9Ii04Ii8+CiAgICAgIDxsaW5lIHgxPSItMTEiIHkxPSIwIiB4Mj0iMTEiIHkyPSIwIi8+CiAgICA8L2c+CgogICAgPCEtLSByYWRpYXRpbmcgc291bmQgd2F2ZXMsIHVwcGVyLXJpZ2h0LCBmcm9tIGEgc21hbGwgc291cmNlIGRvdCAtLT4KICAgIDxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDM0OCwxNTApIj4KICAgICAgPGNpcmNsZSBjeD0iMCIgY3k9IjAiIHI9IjMiIGZpbGw9IiNGRkZGRkYiIHN0cm9rZT0ibm9uZSIvPgogICAgICA8cGF0aCBkPSJNMTQsLTEwIGEyNiwyNiAwIDAgMSAwLDIwIi8+CiAgICAgIDxwYXRoIGQ9Ik0yNCwtMjAgYTQyLDQyIDAgMCAxIDAsNDAiLz4KICAgICAgPHBhdGggZD0iTTM0LC0zMiBhNjAsNjAgMCAwIDEgMCw2NCIvPgogICAgPC9nPgoKICAgIDwhLS0gZml2ZS1iYW5kIEVRIHJhY2ssIHJpZ2h0IHNpZGUgLS0+CiAgICA8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgzMDAsMzMwKSI+CiAgICAgIDxsaW5lIHgxPSIwIiB5MT0iLTQ2IiB4Mj0iMCIgeTI9IjQ2Ii8+CiAgICAgIDxsaW5lIHgxPSIyNCIgeTE9Ii00NiIgeDI9IjI0IiB5Mj0iNDYiLz4KICAgICAgPGxpbmUgeDE9IjQ4IiB5MT0iLTQ2IiB4Mj0iNDgiIHkyPSI0NiIvPgogICAgICA8bGluZSB4MT0iNzIiIHkxPSItNDYiIHgyPSI3MiIgeTI9IjQ2Ii8+CiAgICAgIDxsaW5lIHgxPSI5NiIgeTE9Ii00NiIgeDI9Ijk2IiB5Mj0iNDYiLz4KICAgICAgPGNpcmNsZSBjeD0iMCIgY3k9IjEwIiByPSI1Ii8+CiAgICAgIDxjaXJjbGUgY3g9IjI0IiBjeT0iLTE4IiByPSI1Ii8+CiAgICAgIDxjaXJjbGUgY3g9IjQ4IiBjeT0iNCIgcj0iNSIvPgogICAgICA8Y2lyY2xlIGN4PSI3MiIgY3k9Ii0yNiIgcj0iNSIvPgogICAgICA8Y2lyY2xlIGN4PSI5NiIgY3k9IjE0IiByPSI1Ii8+CiAgICA8L2c+CgogICAgPCEtLSBvc2NpbGxvc2NvcGUgd2F2ZWZvcm0sIGNyb3NzaW5nIHRoZSBtaWRkbGUgLS0+CiAgICA8cGF0aCBkPSJNLTIwLDQ3MCBDIDIwLDQ3MCAyMCw0MzAgNTUsNDMwIFMgOTAsNTEwIDEyNSw1MTAgUyAxNjAsNDQwIDE5NSw0NDAgUyAyMzAsNDk1IDI2NSw0OTUgUyAzMDAsNDU1IDMzNSw0NTUgUyAzODAsNDcwIDQyMCw0NzAiLz4KCiAgICA8IS0tIHN0YWdlIGxpZ2h0IHRydXNzLCB1cHBlciBhcmVhLCBzcGFubmluZyB3aWRlIC0tPgogICAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTUwLDQwKSI+CiAgICAgIDxsaW5lIHgxPSItOTAiIHkxPSIwIiB4Mj0iOTAiIHkyPSIwIi8+CiAgICAgIDxsaW5lIHgxPSItOTAiIHkxPSIwIiB4Mj0iLTkwIiB5Mj0iMTQiLz4KICAgICAgPGxpbmUgeDE9Ii0zMCIgeTE9IjAiIHgyPSItMzAiIHkyPSIxNCIvPgogICAgICA8bGluZSB4MT0iMzAiIHkxPSIwIiB4Mj0iMzAiIHkyPSIxNCIvPgogICAgICA8bGluZSB4MT0iOTAiIHkxPSIwIiB4Mj0iOTAiIHkyPSIxNCIvPgogICAgICA8cGF0aCBkPSJNLTkwLDE0IEwtMTA0LDQ0IEwtNzYsNDQgWiIvPgogICAgICA8cGF0aCBkPSJNLTMwLDE0IEwtNDQsNDQgTC0xNiw0NCBaIi8+CiAgICAgIDxwYXRoIGQ9Ik0zMCwxNCBMMTYsNDQgTDQ0LDQ0IFoiLz4KICAgICAgPHBhdGggZD0iTTkwLDE0IEw3Niw0NCBMMTA0LDQ0IFoiLz4KICAgIDwvZz4KCiAgICA8IS0tIHNwZWFrZXIgY2FiaW5ldCBzdGFjaywgbG93ZXItbGVmdCAtLT4KICAgIDxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDcwLDY1MCkiPgogICAgICA8cmVjdCB4PSItMzgiIHk9Ii03MCIgd2lkdGg9Ijc2IiBoZWlnaHQ9IjcwIiByeD0iNCIvPgogICAgICA8Y2lyY2xlIGN4PSIwIiBjeT0iLTUwIiByPSIxNSIvPgogICAgICA8Y2lyY2xlIGN4PSIwIiBjeT0iLTUwIiByPSI3Ii8+CiAgICAgIDxjaXJjbGUgY3g9IjAiIGN5PSItMTYiIHI9IjkiLz4KICAgICAgPHJlY3QgeD0iLTM4IiB5PSI0IiB3aWR0aD0iNzYiIGhlaWdodD0iNzAiIHJ4PSI0Ii8+CiAgICAgIDxjaXJjbGUgY3g9IjAiIGN5PSIyNCIgcj0iMTUiLz4KICAgICAgPGNpcmNsZSBjeD0iMCIgY3k9IjI0IiByPSI3Ii8+CiAgICAgIDxjaXJjbGUgY3g9IjAiIGN5PSI1OCIgcj0iOSIvPgogICAgPC9nPgoKICAgIDwhLS0gaGVhZHBob25lcywgbG93ZXItcmlnaHQgLS0+CiAgICA8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgzMjAsNzAwKSI+CiAgICAgIDxwYXRoIGQ9Ik0tNDAsMCBhNDAsNDAgMCAwIDEgODAsMCIvPgogICAgICA8cmVjdCB4PSItNTIiIHk9Ii00IiB3aWR0aD0iMTYiIGhlaWdodD0iMzAiIHJ4PSI2Ii8+CiAgICAgIDxyZWN0IHg9IjM2IiB5PSItNCIgd2lkdGg9IjE2IiBoZWlnaHQ9IjMwIiByeD0iNiIvPgogICAgPC9nPgoKICAgIDwhLS0gVlUgbWV0ZXIgYXJjLCBsb3dlciBhcmVhIC0tPgogICAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMjAwLDgxMCkiPgogICAgICA8cGF0aCBkPSJNLTYwLDEwIEE2MCw2MCAwIDAgMSA2MCwxMCIvPgogICAgICA8bGluZSB4MT0iLTYwIiB5MT0iMTAiIHgyPSItNTIiIHkyPSIxMCIvPgogICAgICA8bGluZSB4MT0iLTMwIiB5MT0iLTQ2IiB4Mj0iLTI2IiB5Mj0iLTQwIi8+CiAgICAgIDxsaW5lIHgxPSIwIiB5MT0iLTU4IiB4Mj0iMCIgeTI9Ii01MCIvPgogICAgICA8bGluZSB4MT0iMzAiIHkxPSItNDYiIHgyPSIyNiIgeTI9Ii00MCIvPgogICAgICA8bGluZSB4MT0iNjAiIHkxPSIxMCIgeDI9IjUyIiB5Mj0iMTAiLz4KICAgICAgPGxpbmUgeDE9IjAiIHkxPSIxMCIgeDI9Ii0xNiIgeTI9Ii0zOCIvPgogICAgPC9nPgoKICAgIDwhLS0gc2NhdHRlcmVkIGRvdHMsIGxpa2Ugc21hbGwgcml2ZXRzL3N0YXJzIC0tPgogICAgPGNpcmNsZSBjeD0iMTgwIiBjeT0iMTIwIiByPSIyLjIiIGZpbGw9IiNGRkZGRkYiIHN0cm9rZT0ibm9uZSIvPgogICAgPGNpcmNsZSBjeD0iMjUwIiBjeT0iMjMwIiByPSIxLjYiIGZpbGw9IiNGRkZGRkYiIHN0cm9rZT0ibm9uZSIvPgogICAgPGNpcmNsZSBjeD0iMzAiIGN5PSIyNjAiIHI9IjEuOCIgZmlsbD0iI0ZGRkZGRiIgc3Ryb2tlPSJub25lIi8+CiAgICA8Y2lyY2xlIGN4PSIzNzAiIGN5PSI0MjAiIHI9IjIiIGZpbGw9IiNGRkZGRkYiIHN0cm9rZT0ibm9uZSIvPgogICAgPGNpcmNsZSBjeD0iMTMwIiBjeT0iNTYwIiByPSIxLjYiIGZpbGw9IiNGRkZGRkYiIHN0cm9rZT0ibm9uZSIvPgogICAgPGNpcmNsZSBjeD0iMjMwIiBjeT0iNjIwIiByPSIyLjIiIGZpbGw9IiNGRkZGRkYiIHN0cm9rZT0ibm9uZSIvPgogICAgPGNpcmNsZSBjeD0iMzYwIiBjeT0iNjAwIiByPSIxLjYiIGZpbGw9IiNGRkZGRkYiIHN0cm9rZT0ibm9uZSIvPgogICAgPGNpcmNsZSBjeD0iOTAiIGN5PSI3ODAiIHI9IjEuOCIgZmlsbD0iI0ZGRkZGRiIgc3Ryb2tlPSJub25lIi8+CiAgICA8Y2lyY2xlIGN4PSIyMDAiIGN5PSI4NjAiIHI9IjEuNiIgZmlsbD0iI0ZGRkZGRiIgc3Ryb2tlPSJub25lIi8+CgogIDwvZz4KPC9zdmc+Cg==");
+         background-repeat: no-repeat, no-repeat;
+         background-position: center top, center top;
+         background-size: auto, cover; }
 
   /* ── SURFACES ───────────────────────────────── */
   /* Raised machined panel — reserved for things you can actually touch:
@@ -207,6 +219,12 @@
   .in-readout b { font-family: 'Space Grotesk', sans-serif; font-size: 12px; color: var(--text-dim); font-weight: 700; display: block; margin-top: 2px; }
   .in-readout b.hot { color: var(--green); text-shadow: 0 0 9px rgba(69,217,122,.5); }
   .in-readout b.low { color: var(--amber); }
+  /* Small knurled-connector mark next to the app's real "jacks" — mic
+     input and earbud output — echoing the hardware panel's metal jack
+     rings without borrowing its actual artwork. */
+  .in-readout .lbl, .db-readout .lbl { display: inline-flex; align-items: center; gap: 3px; }
+  .db-readout .lbl { justify-content: flex-end; }
+  .jack-icon { width: 10px; height: 10px; flex-shrink: 0; opacity: .6; }
 
   /* Enough top margin that the value bubble (which floats above the marker)
      never overlaps the MIC IN / dB numbers in the header above it — the two
@@ -410,12 +428,12 @@
   /* ── CARDS / SECTIONS ───────────────────────── */
   .section-label { padding: 18px 20px 9px; display: flex; align-items: center; justify-content: space-between; }
   .section-label h3 { font-family: 'Space Grotesk', sans-serif; font-size: 10.5px; font-weight: 700;
-                      color: var(--text-muted); letter-spacing: 1.7px; text-transform: uppercase; }
+                      color: var(--text-muted); letter-spacing: 2.1px; text-transform: uppercase; }
   .section-label .hint { font-family: 'Space Grotesk', sans-serif; font-size: 10.5px;
                          color: var(--text-dim); letter-spacing: .6px; }
   .card { padding: 17px; margin: 0 14px 11px; }
   .card-title { font-family: 'Space Grotesk', sans-serif; font-size: 10.5px; font-weight: 700;
-                color: var(--text-muted); letter-spacing: 1.4px; text-transform: uppercase;
+                color: var(--text-muted); letter-spacing: 1.8px; text-transform: uppercase;
                 margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
   .card-title .sub { font-size: 12px; font-weight: 700; text-transform: none; letter-spacing: .3px;
                      color: var(--metal-1); text-shadow: 0 0 10px var(--glow-soft); }
@@ -745,8 +763,8 @@
              belonged to the graph rather than to the output number above. -->
         <div class="meter-card flat">
           <div class="meter-head">
-            <div class="in-readout">MIC IN<b id="inVal">—</b></div>
-            <div class="db-readout"><span class="val" id="dbVal">—</span>dB IN YOUR EARS</div>
+            <div class="in-readout"><span class="lbl"><svg class="jack-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="1.4"/><g stroke="currentColor" stroke-width="1.2"><line x1="12" y1="1" x2="12" y2="3.5"/><line x1="12" y1="20.5" x2="12" y2="23"/><line x1="1" y1="12" x2="3.5" y2="12"/><line x1="20.5" y1="12" x2="23" y2="12"/><line x1="4.2" y1="4.2" x2="6" y2="6"/><line x1="18" y1="18" x2="19.8" y2="19.8"/><line x1="4.2" y1="19.8" x2="6" y2="18"/><line x1="18" y1="6" x2="19.8" y2="4.2"/></g></svg>MIC IN</span><b id="inVal">—</b></div>
+            <div class="db-readout"><span class="val" id="dbVal">—</span><span class="lbl">dB IN YOUR EARS<svg class="jack-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="1.4"/><g stroke="currentColor" stroke-width="1.2"><line x1="12" y1="1" x2="12" y2="3.5"/><line x1="12" y1="20.5" x2="12" y2="23"/><line x1="1" y1="12" x2="3.5" y2="12"/><line x1="20.5" y1="12" x2="23" y2="12"/><line x1="4.2" y1="4.2" x2="6" y2="6"/><line x1="18" y1="18" x2="19.8" y2="19.8"/><line x1="4.2" y1="19.8" x2="6" y2="18"/><line x1="18" y1="6" x2="19.8" y2="4.2"/></g></svg></span></div>
           </div>
 
           <!-- The cap marker IS the control — tap and hold, drag anywhere
