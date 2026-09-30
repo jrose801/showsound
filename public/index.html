@@ -62,7 +62,19 @@
      poster. Back to a plain top vignette over the flat panel color — the
      jack icons by MIC IN / dB out stay, since those are doing real labeling
      work rather than decoration. */
-  .app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; overflow: hidden;
+  /* Two attempts at the nav-bar's own padding did nothing to the reported
+     gap below it — which makes sense if the gap was never inside .nav-bar
+     at all. 100vh/100dvh is a *document-flow* height: on some iOS/WebKit
+     builds it under-reports the true visible height in a standalone PWA,
+     leaving a sliver of plain body background (--bg, nearly the same dark
+     tone as the nav bar) showing below the whole app rather than below any
+     one element inside it — which is exactly why padding changes to the
+     nav bar specifically had zero visible effect. .splash and
+     .permission-overlay already dodge this with position:fixed;inset:0,
+     which is pinned to the real viewport rather than a computed height —
+     giving .app the same treatment should end this for good regardless of
+     the exact dvh quirk at play. */
+  .app { position: fixed; inset: 0; display: flex; flex-direction: column; overflow: hidden;
          background:
            radial-gradient(120% 60% at 50% -10%, #272C31 0%, transparent 60%),
            var(--bg); }
@@ -403,8 +415,12 @@
      cyan with a glow (on), same as the ring lighting up around it. The
      volume number is a separate element that fades in above it, so the
      icon's position never shifts whether or not the number is showing. */
-  .power-icon { position: absolute; left: 50%; top: 57%; transform: translate(-50%, -50%);
-                color: #fff; opacity: .07; transition: opacity .3s, color .3s, filter .3s; }
+  .power-icon { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+                /* A dark solid shape reads as "off" consistently across the
+                   knob's gradient (a faint white ghost washed out over the
+                   brighter part of the face) — visible via contrast against
+                   the surrounding material rather than via brightness. */
+                color: #121416; opacity: .9; transition: opacity .3s, color .3s, filter .3s; }
   .power-icon svg { display: block; }
   .knob-stage.live .power-icon { color: var(--cyan); opacity: 1; filter: drop-shadow(0 0 7px var(--cyan-glow)); }
   .vol-number { position: absolute; left: 50%; top: 32%; transform: translate(-50%, -50%);
@@ -829,7 +845,7 @@
                    the number (on) — it just goes from an unlit impression to
                    a lit cyan glow, like a real backlit power button. -->
               <div class="power-icon" aria-label="Power">
-                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v6M6.3 5.3a8 8 0 1 0 11.4 0"/></svg>
+                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v6M6.3 5.3a8 8 0 1 0 11.4 0"/></svg>
               </div>
               <div class="duck-display">
                 <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M23 9 17 15M17 9l6 6"/></svg>
