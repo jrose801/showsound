@@ -150,8 +150,16 @@
     display: grid; grid-template-columns: repeat(4, 1fr);
     /* The safe-area inset is padding *inside* the nav bar's own background,
        not empty space below it — this is what makes the bar itself run
-       flush to the true bottom edge on notched/home-indicator phones. */
-    padding: 9px 0 max(14px, env(safe-area-inset-bottom));
+       flush to the true bottom edge on notched/home-indicator phones.
+       Your screenshot measured ~90pt of dead space below the nav labels —
+       way past what any real iPhone's safe area should add (34pt, max).
+       max(14px, env(...)) nested inside a shorthand padding value is a
+       known flaky combo on WebKit, so this is split into longhand with
+       env()'s own native fallback, capped at 40px. The cap can't clip a
+       genuine safe area on any real device — it only guards against
+       whatever inflated it here. */
+    padding-top: 9px;
+    padding-bottom: min(40px, env(safe-area-inset-bottom, 14px));
   }
   .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 5px;
               color: var(--text-muted); transition: color .18s; cursor: pointer; }
@@ -388,35 +396,33 @@
      over the knob face; pointer-events:none so it never interferes with
      the tap/hold/drag handling on the stage beneath it. */
   .knob-center { position: absolute; inset: 12%; border-radius: 50%; z-index: 3;
-                 display: flex; align-items: center; justify-content: center;
                  pointer-events: none; text-align: center; }
-  .vol-display, .duck-display, .power-display { display: flex; flex-direction: column; align-items: center; min-width: 0;
-                                 transition: opacity .16s; }
-  .duck-display, .power-display { position: absolute; inset: 0; justify-content: center; opacity: 0; }
-  .duck-display { color: var(--cyan); }
-  /* Darker than the muted-text tone used everywhere else — this needs to
-     read as unlit against the knob face, not just as another dim label. */
-  .power-display { color: var(--metal-4); }
-  .knob-stage.ducking .vol-display { opacity: 0; }
+  /* The power glyph is a fixed fixture on the dial, like a backlit icon
+     molded into real hardware — it never moves and is always in the DOM,
+     it just goes from an almost-invisible impression (off) to fully lit
+     cyan with a glow (on), same as the ring lighting up around it. The
+     volume number is a separate element that fades in above it, so the
+     icon's position never shifts whether or not the number is showing. */
+  .power-icon { position: absolute; left: 50%; top: 57%; transform: translate(-50%, -50%);
+                color: #fff; opacity: .07; transition: opacity .3s, color .3s, filter .3s; }
+  .power-icon svg { display: block; }
+  .knob-stage.live .power-icon { color: var(--cyan); opacity: 1; filter: drop-shadow(0 0 7px var(--cyan-glow)); }
+  .vol-number { position: absolute; left: 50%; top: 32%; transform: translate(-50%, -50%);
+                font-family: 'Space Grotesk', sans-serif; font-size: clamp(30px, 9vw, 42px); font-weight: 700;
+                line-height: 1; color: var(--metal-1); text-shadow: 0 0 20px var(--cyan-glow);
+                opacity: 0; transition: opacity .16s; white-space: nowrap; }
+  /* Shows once live, and also mid-drag while still off so dragging from a
+     cold start gives direct numeric feedback before you've actually let go. */
+  .knob-stage.live .vol-number, .knob-stage.active .vol-number { opacity: 1; }
+  .knob-stage.ducking .power-icon, .knob-stage.ducking .vol-number { opacity: 0; }
+  .duck-display { position: absolute; inset: 0; display: flex; flex-direction: column;
+                   align-items: center; justify-content: center; opacity: 0; color: var(--cyan);
+                   transition: opacity .16s; }
   .knob-stage.ducking .duck-display { opacity: 1; }
   .knob-stage.ducking .knob { filter: brightness(.72); }
-  /* Off by default (see audio setup): unlit power glyph sits in the dial's
-     center instead of the volume readout, and steps aside the instant a drag
-     is resolved so dragging while off still gives direct numeric feedback. */
-  .knob-stage:not(.live) .vol-display { opacity: 0; }
-  .knob-stage:not(.live) .power-display { opacity: 1; }
-  .knob-stage:not(.live).active .vol-display { opacity: 1; }
-  .knob-stage:not(.live).active .power-display { opacity: 0; }
-  .vol-display h3 { font-family: 'Space Grotesk', sans-serif; font-size: 10px; font-weight: 700;
-                    color: var(--text-muted); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 2px; }
-  .vol-display .num { font-family: 'Space Grotesk', sans-serif; font-size: clamp(32px, 9.5vw, 46px); font-weight: 700;
-                       line-height: 1; color: var(--metal-1); text-shadow: 0 0 20px var(--cyan-glow); }
   .duck-display svg { filter: drop-shadow(0 0 8px var(--cyan-glow)); margin-bottom: 4px; }
   .duck-display .lbl { font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 700;
                         letter-spacing: 1.5px; text-transform: uppercase; }
-  /* No label needed: bigger + darker + fully opaque reads as "off" on its
-     own, matching the neutral, unlit ring and dot in the same state. */
-  .power-hint { margin-top: 7px; opacity: .3; color: var(--text-muted); }
   .unit { font-size: 10px; color: var(--text-muted); letter-spacing: .8px; margin-top: 4px; text-transform: uppercase; flex-shrink: 0; }
 
   /* ── PRESET CHIPS ───────────────────────────── */
@@ -646,47 +652,25 @@
   .splash.leaving { opacity: 0; pointer-events: none; }
   .splash.gone { display: none; }
 
-  .splash-mark { position: relative; width: 128px; height: 128px; }
-  /* Concentric ring that draws itself in, echoing the volume knob's ring —
-     the app's one recurring shape — rather than an unrelated spinner. */
-  .splash-ring { position: absolute; inset: 0; transform: rotate(-90deg); }
-  .splash-ring .trk { fill: none; stroke: rgba(255,255,255,0.06); stroke-width: 2.5; }
-  .splash-ring .val { fill: none; stroke: var(--metal-1); stroke-width: 2.5; stroke-linecap: round;
-                       filter: drop-shadow(0 0 6px var(--glow)); }
-  .splash-core {
-    position: absolute; inset: 22%; border-radius: 50%;
-    background: radial-gradient(circle at 50% 42%, #F4F5F6 0%, #D3D7DB 40%, #8B9196 100%);
-    box-shadow: 0 1px 0 rgba(255,255,255,.9) inset, 0 -3px 8px rgba(0,0,0,.35) inset,
-                0 14px 32px -10px rgba(0,0,0,.85), 0 0 0 1px rgba(0,0,0,.4);
-    display: flex; align-items: center; justify-content: center;
-    animation: splashBreathe 2.6s ease-in-out infinite;
-  }
-  .splash-core svg { width: 34%; height: 34%; opacity: .82; }
-  @keyframes splashBreathe {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.045); }
-  }
+  /* Just the real app icon (same PNG as the home-screen icon) and the
+     wordmark — no separate hand-drawn mark, no ring animation, no ambient
+     decoration. Simple, brief, matches what's already on the person's home
+     screen so the two feel like the same object. */
+  .splash-icon { width: 108px; height: 108px; border-radius: 24px;
+                 box-shadow: 0 14px 32px -10px rgba(0,0,0,.85), 0 0 0 1px rgba(0,0,0,.4);
+                 opacity: 0; transform: scale(.94);
+                 animation: splashIconIn .55s cubic-bezier(.16,1,.3,1) forwards; }
+  @keyframes splashIconIn { to { opacity: 1; transform: scale(1); } }
 
   .splash-word { display: flex; flex-direction: column; align-items: center; gap: 5px; }
   .splash-logo { font-family: 'Space Grotesk', sans-serif; font-size: 27px; font-weight: 700;
                  letter-spacing: -.5px; opacity: 0; transform: translateY(8px);
-                 animation: splashWordIn .7s cubic-bezier(.16,1,.3,1) .55s forwards; }
+                 animation: splashWordIn .7s cubic-bezier(.16,1,.3,1) .2s forwards; }
   .splash-logo span { color: var(--text-dim); }
   .splash-tag { font-size: 10.5px; color: var(--text-muted); letter-spacing: 2.4px; text-transform: uppercase;
                 opacity: 0; transform: translateY(6px);
-                animation: splashWordIn .7s cubic-bezier(.16,1,.3,1) .75s forwards; }
+                animation: splashWordIn .7s cubic-bezier(.16,1,.3,1) .35s forwards; }
   @keyframes splashWordIn { to { opacity: 1; transform: translateY(0); } }
-
-  /* Ambient level bars behind the mark — quiet, decorative, hints at what
-     the app does (reads live audio) without saying anything literal. */
-  .splash-bars { position: absolute; inset: 0; display: flex; align-items: flex-end;
-                 justify-content: center; gap: 4px; padding-bottom: 46%; pointer-events: none; }
-  .splash-bars i { width: 3px; border-radius: 2px; background: var(--glow-soft);
-                    animation: splashBar 1.3s ease-in-out infinite; }
-  @keyframes splashBar {
-    0%, 100% { transform: scaleY(0.3); opacity: .35; }
-    50% { transform: scaleY(1); opacity: .8; }
-  }
 
   /* Permission card — same overlay slot, restyled to match: a raised
      machined panel instead of a bare emoji, arriving with its own settle
@@ -717,25 +701,12 @@
 </head>
 <body>
 
-<!-- SPLASH — first frame anyone sees. Ring draws in, core breathes once,
-     wordmark settles in behind it, then the whole thing hands off to the
-     permission card. Everything here is built from shapes already used
-     elsewhere in the app (the knob ring, the machined core) so it reads as
-     the same product waking up, not a bolted-on loading screen. -->
+<!-- SPLASH — first frame anyone sees. Just the real app icon (the same PNG
+     used for the home-screen icon — swap the src if you ever rename the
+     asset) and the wordmark, briefly, then it hands off to the permission
+     card. No separate hand-drawn mark to keep in sync with the actual icon. -->
 <div class="splash" id="splash">
-  <div class="splash-bars" id="splashBars"></div>
-  <div class="splash-mark">
-    <svg class="splash-ring" viewBox="0 0 128 128" aria-hidden="true">
-      <circle class="trk" cx="64" cy="64" r="58"/>
-      <circle class="val" id="splashRing" cx="64" cy="64" r="58"/>
-    </svg>
-    <div class="splash-core">
-      <svg viewBox="0 0 24 24" fill="none" stroke="#20242A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M3 18v-6a9 9 0 0 1 18 0v6"/>
-        <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/>
-      </svg>
-    </div>
-  </div>
+  <img class="splash-icon" src="./icons/icon-512.png" alt="">
   <div class="splash-word">
     <div class="splash-logo">Show<span>Sound</span></div>
     <div class="splash-tag">Live EQ &amp; Hearing Protection</div>
@@ -852,21 +823,17 @@
             </svg>
             <div class="knob"><div class="knob-dot"></div></div>
             <div class="knob-center">
-              <div class="vol-display">
-                <h3>Volume</h3>
-                <div class="num" id="volLabel">40</div>
-                <!-- Same glyph as the big off-state icon below, just small and
-                     faint — repetition teaches that this icon is the power
-                     toggle in both directions, with no label needed either
-                     time. -->
-                <svg class="power-hint" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v6M6.3 5.3a8 8 0 1 0 11.4 0"/></svg>
+              <div class="vol-number" id="volLabel">40</div>
+              <!-- Persistent fixture, not a state swap: same icon, same spot,
+                   whether it's the dial's only content (off) or sitting under
+                   the number (on) — it just goes from an unlit impression to
+                   a lit cyan glow, like a real backlit power button. -->
+              <div class="power-icon" aria-label="Power">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v6M6.3 5.3a8 8 0 1 0 11.4 0"/></svg>
               </div>
               <div class="duck-display">
                 <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M23 9 17 15M17 9l6 6"/></svg>
                 <div class="lbl">Ducked</div>
-              </div>
-              <div class="power-display">
-                <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-label="Powered off, tap to start"><path d="M12 2v6M6.3 5.3a8 8 0 1 0 11.4 0"/></svg>
               </div>
             </div>
           </div>
@@ -2204,37 +2171,16 @@ function sizeKnob() {
 
 // ═══════════════════════════════════════════════
 // SPLASH SEQUENCE
-// Ring draws itself in over ~900ms, the core does one settle-breathe, the
-// wordmark fades up behind it — then the whole mark hands off to the
+// Icon and wordmark fade up together, hold briefly, then hand off to the
 // permission card with a cross-fade rather than a hard cut. Runs once per
 // launch; there's nothing to gate it on since it's pure UI, not audio.
 // ═══════════════════════════════════════════════
 (function runSplash() {
   const splash = document.getElementById('splash');
   const perm = document.getElementById('permOverlay');
-  const ring = document.getElementById('splashRing');
-  const barsHost = document.getElementById('splashBars');
-  if (!splash || !ring) return;
+  if (!splash || !perm) return;
 
-  // A few ambient bars, staggered, purely decorative
-  let barsHtml = '';
-  for (let i = 0; i < 9; i++) {
-    const h = 14 + Math.abs(4 - i) * -3 + 26;
-    barsHtml += '<i style="height:' + h + 'px; animation-delay:' + (i * 0.09).toFixed(2) + 's"></i>';
-  }
-  barsHost.innerHTML = barsHtml;
-
-  const R = 58, CIRC = 2 * Math.PI * R;
-  ring.style.strokeDasharray = String(CIRC);
-  ring.style.strokeDashoffset = String(CIRC);
-  ring.style.transition = 'stroke-dashoffset 0.9s cubic-bezier(.65,0,.35,1)';
-
-  // Kick the draw-in on the next frame so the initial state actually paints first
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => { ring.style.strokeDashoffset = '0'; });
-  });
-
-  const HOLD_MS = 1500;   // total time the mark gets before handing off
+  const HOLD_MS = 1100;   // brief — just long enough to register, not a delay
   setTimeout(() => {
     splash.classList.add('leaving');
     perm.classList.add('show');
