@@ -47,24 +47,25 @@
     height: 100%; overflow: hidden;
     -webkit-font-smoothing: antialiased;
     overscroll-behavior: none;
+    /* This is a touch-control app, not text content — without these, a
+       long-press anywhere (like holding the dial to duck) triggers the
+       browser's own text-selection magnifier/callout on top of the UI,
+       which is almost certainly the "highlighting" glitch on the dial and
+       the CAP bar during a hold. */
+    -webkit-user-select: none; user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
   }
 
-  /* Faint etched-panel line art behind the whole app — original audio/live-show
-     motifs (mic, EQ rack, waveform, stage truss, speaker stack, headphones,
-     VU arc), drawn at very low opacity so it reads as texture on the panel,
-     never competing with real content. Sits under the existing top vignette
-     and above the flat background color; only visible through the app's
-     transparent .flat surfaces and gaps, same way the reference hardware's
-     etched artwork only shows in the panel's negative space around its
-     actual controls. */
+  /* Reverted the etched-line-art background: the Aeronaut *device* itself
+     is clean matte black; the busy illustration was only in its promo
+     poster. Back to a plain top vignette over the flat panel color — the
+     jack icons by MIC IN / dB out stay, since those are doing real labeling
+     work rather than decoration. */
   .app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; overflow: hidden;
-         background-color: var(--bg);
-         background-image:
+         background:
            radial-gradient(120% 60% at 50% -10%, #272C31 0%, transparent 60%),
-           url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MDAgOTAwIiBmaWxsPSJub25lIj4KICA8ZyBzdHJva2U9IiNGRkZGRkYiIHN0cm9rZS13aWR0aD0iMS4yIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIG9wYWNpdHk9IjAuMDciPgoKICAgIDwhLS0gbWljLCB1cHBlci1sZWZ0IC0tPgogICAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNDYsODYpIj4KICAgICAgPHJlY3QgeD0iLTExIiB5PSItMjYiIHdpZHRoPSIyMiIgaGVpZ2h0PSI0MCIgcng9IjExIi8+CiAgICAgIDxwYXRoIGQ9Ik0tMjAsLTIgYTIwLDIwIDAgMCAwIDQwLDAiLz4KICAgICAgPGxpbmUgeDE9IjAiIHkxPSIxOCIgeDI9IjAiIHkyPSIzMiIvPgogICAgICA8bGluZSB4MT0iLTEzIiB5MT0iMzIiIHgyPSIxMyIgeTI9IjMyIi8+CiAgICAgIDxsaW5lIHgxPSItMTEiIHkxPSItMTYiIHgyPSIxMSIgeTI9Ii0xNiIvPgogICAgICA8bGluZSB4MT0iLTExIiB5MT0iLTgiIHgyPSIxMSIgeTI9Ii04Ii8+CiAgICAgIDxsaW5lIHgxPSItMTEiIHkxPSIwIiB4Mj0iMTEiIHkyPSIwIi8+CiAgICA8L2c+CgogICAgPCEtLSByYWRpYXRpbmcgc291bmQgd2F2ZXMsIHVwcGVyLXJpZ2h0LCBmcm9tIGEgc21hbGwgc291cmNlIGRvdCAtLT4KICAgIDxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDM0OCwxNTApIj4KICAgICAgPGNpcmNsZSBjeD0iMCIgY3k9IjAiIHI9IjMiIGZpbGw9IiNGRkZGRkYiIHN0cm9rZT0ibm9uZSIvPgogICAgICA8cGF0aCBkPSJNMTQsLTEwIGEyNiwyNiAwIDAgMSAwLDIwIi8+CiAgICAgIDxwYXRoIGQ9Ik0yNCwtMjAgYTQyLDQyIDAgMCAxIDAsNDAiLz4KICAgICAgPHBhdGggZD0iTTM0LC0zMiBhNjAsNjAgMCAwIDEgMCw2NCIvPgogICAgPC9nPgoKICAgIDwhLS0gZml2ZS1iYW5kIEVRIHJhY2ssIHJpZ2h0IHNpZGUgLS0+CiAgICA8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgzMDAsMzMwKSI+CiAgICAgIDxsaW5lIHgxPSIwIiB5MT0iLTQ2IiB4Mj0iMCIgeTI9IjQ2Ii8+CiAgICAgIDxsaW5lIHgxPSIyNCIgeTE9Ii00NiIgeDI9IjI0IiB5Mj0iNDYiLz4KICAgICAgPGxpbmUgeDE9IjQ4IiB5MT0iLTQ2IiB4Mj0iNDgiIHkyPSI0NiIvPgogICAgICA8bGluZSB4MT0iNzIiIHkxPSItNDYiIHgyPSI3MiIgeTI9IjQ2Ii8+CiAgICAgIDxsaW5lIHgxPSI5NiIgeTE9Ii00NiIgeDI9Ijk2IiB5Mj0iNDYiLz4KICAgICAgPGNpcmNsZSBjeD0iMCIgY3k9IjEwIiByPSI1Ii8+CiAgICAgIDxjaXJjbGUgY3g9IjI0IiBjeT0iLTE4IiByPSI1Ii8+CiAgICAgIDxjaXJjbGUgY3g9IjQ4IiBjeT0iNCIgcj0iNSIvPgogICAgICA8Y2lyY2xlIGN4PSI3MiIgY3k9Ii0yNiIgcj0iNSIvPgogICAgICA8Y2lyY2xlIGN4PSI5NiIgY3k9IjE0IiByPSI1Ii8+CiAgICA8L2c+CgogICAgPCEtLSBvc2NpbGxvc2NvcGUgd2F2ZWZvcm0sIGNyb3NzaW5nIHRoZSBtaWRkbGUgLS0+CiAgICA8cGF0aCBkPSJNLTIwLDQ3MCBDIDIwLDQ3MCAyMCw0MzAgNTUsNDMwIFMgOTAsNTEwIDEyNSw1MTAgUyAxNjAsNDQwIDE5NSw0NDAgUyAyMzAsNDk1IDI2NSw0OTUgUyAzMDAsNDU1IDMzNSw0NTUgUyAzODAsNDcwIDQyMCw0NzAiLz4KCiAgICA8IS0tIHN0YWdlIGxpZ2h0IHRydXNzLCB1cHBlciBhcmVhLCBzcGFubmluZyB3aWRlIC0tPgogICAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTUwLDQwKSI+CiAgICAgIDxsaW5lIHgxPSItOTAiIHkxPSIwIiB4Mj0iOTAiIHkyPSIwIi8+CiAgICAgIDxsaW5lIHgxPSItOTAiIHkxPSIwIiB4Mj0iLTkwIiB5Mj0iMTQiLz4KICAgICAgPGxpbmUgeDE9Ii0zMCIgeTE9IjAiIHgyPSItMzAiIHkyPSIxNCIvPgogICAgICA8bGluZSB4MT0iMzAiIHkxPSIwIiB4Mj0iMzAiIHkyPSIxNCIvPgogICAgICA8bGluZSB4MT0iOTAiIHkxPSIwIiB4Mj0iOTAiIHkyPSIxNCIvPgogICAgICA8cGF0aCBkPSJNLTkwLDE0IEwtMTA0LDQ0IEwtNzYsNDQgWiIvPgogICAgICA8cGF0aCBkPSJNLTMwLDE0IEwtNDQsNDQgTC0xNiw0NCBaIi8+CiAgICAgIDxwYXRoIGQ9Ik0zMCwxNCBMMTYsNDQgTDQ0LDQ0IFoiLz4KICAgICAgPHBhdGggZD0iTTkwLDE0IEw3Niw0NCBMMTA0LDQ0IFoiLz4KICAgIDwvZz4KCiAgICA8IS0tIHNwZWFrZXIgY2FiaW5ldCBzdGFjaywgbG93ZXItbGVmdCAtLT4KICAgIDxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDcwLDY1MCkiPgogICAgICA8cmVjdCB4PSItMzgiIHk9Ii03MCIgd2lkdGg9Ijc2IiBoZWlnaHQ9IjcwIiByeD0iNCIvPgogICAgICA8Y2lyY2xlIGN4PSIwIiBjeT0iLTUwIiByPSIxNSIvPgogICAgICA8Y2lyY2xlIGN4PSIwIiBjeT0iLTUwIiByPSI3Ii8+CiAgICAgIDxjaXJjbGUgY3g9IjAiIGN5PSItMTYiIHI9IjkiLz4KICAgICAgPHJlY3QgeD0iLTM4IiB5PSI0IiB3aWR0aD0iNzYiIGhlaWdodD0iNzAiIHJ4PSI0Ii8+CiAgICAgIDxjaXJjbGUgY3g9IjAiIGN5PSIyNCIgcj0iMTUiLz4KICAgICAgPGNpcmNsZSBjeD0iMCIgY3k9IjI0IiByPSI3Ii8+CiAgICAgIDxjaXJjbGUgY3g9IjAiIGN5PSI1OCIgcj0iOSIvPgogICAgPC9nPgoKICAgIDwhLS0gaGVhZHBob25lcywgbG93ZXItcmlnaHQgLS0+CiAgICA8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgzMjAsNzAwKSI+CiAgICAgIDxwYXRoIGQ9Ik0tNDAsMCBhNDAsNDAgMCAwIDEgODAsMCIvPgogICAgICA8cmVjdCB4PSItNTIiIHk9Ii00IiB3aWR0aD0iMTYiIGhlaWdodD0iMzAiIHJ4PSI2Ii8+CiAgICAgIDxyZWN0IHg9IjM2IiB5PSItNCIgd2lkdGg9IjE2IiBoZWlnaHQ9IjMwIiByeD0iNiIvPgogICAgPC9nPgoKICAgIDwhLS0gVlUgbWV0ZXIgYXJjLCBsb3dlciBhcmVhIC0tPgogICAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMjAwLDgxMCkiPgogICAgICA8cGF0aCBkPSJNLTYwLDEwIEE2MCw2MCAwIDAgMSA2MCwxMCIvPgogICAgICA8bGluZSB4MT0iLTYwIiB5MT0iMTAiIHgyPSItNTIiIHkyPSIxMCIvPgogICAgICA8bGluZSB4MT0iLTMwIiB5MT0iLTQ2IiB4Mj0iLTI2IiB5Mj0iLTQwIi8+CiAgICAgIDxsaW5lIHgxPSIwIiB5MT0iLTU4IiB4Mj0iMCIgeTI9Ii01MCIvPgogICAgICA8bGluZSB4MT0iMzAiIHkxPSItNDYiIHgyPSIyNiIgeTI9Ii00MCIvPgogICAgICA8bGluZSB4MT0iNjAiIHkxPSIxMCIgeDI9IjUyIiB5Mj0iMTAiLz4KICAgICAgPGxpbmUgeDE9IjAiIHkxPSIxMCIgeDI9Ii0xNiIgeTI9Ii0zOCIvPgogICAgPC9nPgoKICAgIDwhLS0gc2NhdHRlcmVkIGRvdHMsIGxpa2Ugc21hbGwgcml2ZXRzL3N0YXJzIC0tPgogICAgPGNpcmNsZSBjeD0iMTgwIiBjeT0iMTIwIiByPSIyLjIiIGZpbGw9IiNGRkZGRkYiIHN0cm9rZT0ibm9uZSIvPgogICAgPGNpcmNsZSBjeD0iMjUwIiBjeT0iMjMwIiByPSIxLjYiIGZpbGw9IiNGRkZGRkYiIHN0cm9rZT0ibm9uZSIvPgogICAgPGNpcmNsZSBjeD0iMzAiIGN5PSIyNjAiIHI9IjEuOCIgZmlsbD0iI0ZGRkZGRiIgc3Ryb2tlPSJub25lIi8+CiAgICA8Y2lyY2xlIGN4PSIzNzAiIGN5PSI0MjAiIHI9IjIiIGZpbGw9IiNGRkZGRkYiIHN0cm9rZT0ibm9uZSIvPgogICAgPGNpcmNsZSBjeD0iMTMwIiBjeT0iNTYwIiByPSIxLjYiIGZpbGw9IiNGRkZGRkYiIHN0cm9rZT0ibm9uZSIvPgogICAgPGNpcmNsZSBjeD0iMjMwIiBjeT0iNjIwIiByPSIyLjIiIGZpbGw9IiNGRkZGRkYiIHN0cm9rZT0ibm9uZSIvPgogICAgPGNpcmNsZSBjeD0iMzYwIiBjeT0iNjAwIiByPSIxLjYiIGZpbGw9IiNGRkZGRkYiIHN0cm9rZT0ibm9uZSIvPgogICAgPGNpcmNsZSBjeD0iOTAiIGN5PSI3ODAiIHI9IjEuOCIgZmlsbD0iI0ZGRkZGRiIgc3Ryb2tlPSJub25lIi8+CiAgICA8Y2lyY2xlIGN4PSIyMDAiIGN5PSI4NjAiIHI9IjEuNiIgZmlsbD0iI0ZGRkZGRiIgc3Ryb2tlPSJub25lIi8+CgogIDwvZz4KPC9zdmc+Cg==");
-         background-repeat: no-repeat, no-repeat;
-         background-position: center top, center top;
-         background-size: auto, cover; }
+           var(--bg); }
 
   /* ── SURFACES ───────────────────────────────── */
   /* Raised machined panel — reserved for things you can actually touch:
@@ -123,9 +124,16 @@
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
 
   .tab-host { flex: 1; position: relative; min-height: 0; overflow: hidden; }
-  .tab-panel { position: absolute; inset: 0; display: none; flex-direction: column;
-               overflow-y: auto; -webkit-overflow-scrolling: touch; }
-  .tab-panel.active { display: flex; }
+  /* Subtle cross-fade + rise between tabs instead of an instant cut. Panels
+     stay laid out (not display:none) so opacity/transform can transition;
+     visibility flips at the end of the transition on the way out so an
+     inactive panel still can't be scrolled into or focused via keyboard. */
+  .tab-panel { position: absolute; inset: 0; display: flex; flex-direction: column;
+               overflow-y: auto; -webkit-overflow-scrolling: touch;
+               opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(6px);
+               transition: opacity .22s ease, transform .22s ease, visibility 0s linear .22s; }
+  .tab-panel.active { opacity: 1; visibility: visible; pointer-events: auto; transform: translateY(0);
+                       transition: opacity .22s ease, transform .22s ease, visibility 0s linear 0s; }
   /* Live never scrolls — it must always fit above the nav */
   #tab-live { overflow: hidden; }
 
@@ -190,7 +198,11 @@
   .live-wrap {
     height: 100%; min-height: 0;
     display: flex; flex-direction: column;
-    padding: 10px 14px calc(8px + env(safe-area-inset-bottom, 0px));
+    /* The nav bar below already reserves env(safe-area-inset-bottom) for
+       the home indicator — this panel sits entirely above the nav bar and
+       never reaches that zone, so adding it again here was just wasting
+       real vertical space (a visible dead strip above the nav bar). */
+    padding: 10px 14px 8px;
     gap: 10px;
   }
   /* Tier 1 — the hero. Absorbs all leftover height so the knob is
@@ -312,13 +324,15 @@
   .knob-stage::before {
     content: ''; position: absolute; inset: -14%; border-radius: 50%;
     background: radial-gradient(circle, var(--cyan-glow) 0%, transparent 68%);
-    opacity: .38; pointer-events: none; transition: opacity .2s;
+    opacity: .26; pointer-events: none; transition: opacity .2s;
   }
-  .knob-stage.active::before { opacity: .7; }
+  .knob-stage.active::before { opacity: .5; }
   .knob-ring { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(135deg); }
-  .knob-ring .trk { fill: none; stroke: rgba(255,255,255,.08); stroke-width: 3.5; }
-  .knob-ring .val { fill: none; stroke: var(--cyan); stroke-width: 3.5; stroke-linecap: round;
-                    filter: drop-shadow(0 0 9px var(--cyan-glow)); transition: stroke-dashoffset .06s linear; }
+  /* Thinner, plainer indicator line — leaning toward the Aeronaut's thin
+     white knob markings rather than a thick glowing tube. */
+  .knob-ring .trk { fill: none; stroke: rgba(255,255,255,.08); stroke-width: 2; }
+  .knob-ring .val { fill: none; stroke: var(--cyan); stroke-width: 2; stroke-linecap: round;
+                    filter: drop-shadow(0 0 5px var(--cyan-glow)); transition: stroke-dashoffset .06s linear; }
   .knob-ticks { position: absolute; inset: 0; width: 100%; height: 100%; }
   .knob-ticks line { stroke: rgba(255,255,255,.14); stroke-width: 1.6; stroke-linecap: round; }
   /* Dark matte dial — deliberately black/charcoal with a glowing accent ring
@@ -349,7 +363,7 @@
   .knob-dot { position: absolute; left: 50%; top: 9%; width: 7px; height: 7px; margin-left: -3.5px;
               border-radius: 50%; background: var(--cyan); box-shadow: 0 0 6px var(--cyan-glow), 0 0 2px #fff; z-index: 2; }
   .knob-stage.active .knob { cursor: grabbing; }
-  .knob-stage.active .knob-ring .val { filter: drop-shadow(0 0 13px var(--cyan-glow)); }
+  .knob-stage.active .knob-ring .val { filter: drop-shadow(0 0 8px var(--cyan-glow)); }
   /* Paused/not-started: dial reads as visibly inactive until tapped again,
      without hiding the value — only the ring's glow and halo dim. */
   .knob-stage:not(.live):not(.active)::before { opacity: .16; }
@@ -361,19 +375,30 @@
   .knob-center { position: absolute; inset: 12%; border-radius: 50%; z-index: 3;
                  display: flex; align-items: center; justify-content: center;
                  pointer-events: none; text-align: center; }
-  .vol-display, .duck-display { display: flex; flex-direction: column; align-items: center; min-width: 0;
+  .vol-display, .duck-display, .power-display { display: flex; flex-direction: column; align-items: center; min-width: 0;
                                  transition: opacity .16s; }
-  .duck-display { position: absolute; inset: 0; justify-content: center; opacity: 0; color: var(--cyan); }
+  .duck-display, .power-display { position: absolute; inset: 0; justify-content: center; opacity: 0; }
+  .duck-display { color: var(--cyan); }
+  .power-display { color: var(--text-muted); }
   .knob-stage.ducking .vol-display { opacity: 0; }
   .knob-stage.ducking .duck-display { opacity: 1; }
   .knob-stage.ducking .knob { filter: brightness(.72); }
+  /* Off by default (see audio setup): unlit power glyph sits in the dial's
+     center instead of the volume readout, and steps aside the instant a drag
+     is resolved so dragging while off still gives direct numeric feedback. */
+  .knob-stage:not(.live) .vol-display { opacity: 0; }
+  .knob-stage:not(.live) .power-display { opacity: 1; }
+  .knob-stage:not(.live).active .vol-display { opacity: 1; }
+  .knob-stage:not(.live).active .power-display { opacity: 0; }
   .vol-display h3 { font-family: 'Space Grotesk', sans-serif; font-size: 10px; font-weight: 700;
                     color: var(--text-muted); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 2px; }
   .vol-display .num { font-family: 'Space Grotesk', sans-serif; font-size: clamp(32px, 9.5vw, 46px); font-weight: 700;
                        line-height: 1; color: var(--metal-1); text-shadow: 0 0 20px var(--cyan-glow); }
   .duck-display svg { filter: drop-shadow(0 0 8px var(--cyan-glow)); margin-bottom: 4px; }
-  .duck-display .lbl { font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 700;
+  .duck-display .lbl, .power-display .lbl { font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 700;
                         letter-spacing: 1.5px; text-transform: uppercase; }
+  .power-display svg { margin-bottom: 6px; opacity: .8; }
+  .power-display .lbl { font-size: 10px; letter-spacing: 1.3px; }
   .unit { font-size: 10px; color: var(--text-muted); letter-spacing: .8px; margin-top: 4px; text-transform: uppercase; flex-shrink: 0; }
 
   /* ── PRESET CHIPS ───────────────────────────── */
@@ -811,26 +836,30 @@
             <div class="knob-center">
               <div class="vol-display">
                 <h3>Volume</h3>
-                <div class="num" id="volLabel">100</div>
+                <div class="num" id="volLabel">40</div>
               </div>
               <div class="duck-display">
                 <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M23 9 17 15M17 9l6 6"/></svg>
                 <div class="lbl">Ducked</div>
               </div>
+              <div class="power-display">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v6M6.3 5.3a8 8 0 1 0 11.4 0"/></svg>
+                <div class="lbl">Tap to start</div>
+              </div>
             </div>
           </div>
           <div class="unit">TAP power · HOLD duck · DRAG volume</div>
-          <input type="range" id="volSlider" min="0" max="100" value="100" style="display:none">
+          <input type="range" id="volSlider" min="0" max="100" value="40" style="display:none">
         </div>
 
         <!-- TIER 2 · urgent, lowest = easiest thumb reach. Venue presets
              moved to the EQ tab, and DUCK moved onto the dial itself, so
              this row is now purely the one remaining hold action. -->
         <div class="action-row single">
-          <div class="action-btn surface" id="tuneBtn">
-            <div class="fill" id="tuneFill"></div>
-            <div class="lbl" id="tuneLbl">AUTO TUNE</div>
-            <div class="sub" id="tuneSub">hold 3s to sample</div>
+          <div class="action-btn surface tune-btn" id="tuneBtn">
+            <div class="fill"></div>
+            <div class="lbl">AUTO TUNE</div>
+            <div class="sub">hold 3s to sample</div>
           </div>
         </div>
       </div>
@@ -846,6 +875,15 @@
       <div class="eq-panel surface">
         <div class="eq-grid" id="eqGrid"></div>
         <div class="eq-curve-wrap"><canvas id="eqCurveCanvas"></canvas></div>
+      </div>
+      <!-- Same listen-and-set control as the Live tab, available here too so
+           you don't have to switch tabs to re-tune mid-show. -->
+      <div class="action-row single">
+        <div class="action-btn surface tune-btn">
+          <div class="fill"></div>
+          <div class="lbl">AUTO TUNE</div>
+          <div class="sub">hold 3s to sample</div>
+        </div>
       </div>
       <div class="card flat">
         <div class="card-title">Tip</div>
@@ -1151,8 +1189,13 @@ async function initAudio() {
     compressorNode.connect(analyserNode);
     analyserNode.connect(audioCtx.destination);
 
-    isPlaying = true;
-    updateUI(); startMeter(); startTimer(); reportAudioRoute();
+    // Start powered OFF. The graph is fully built and the mic is already
+    // granted, but nothing plays until the user taps the dial — safer
+    // default than dropping straight into live audio, and it gives the
+    // power-on tap somewhere real to go.
+    audioCtx.suspend();
+    isPlaying = false;
+    updateUI(); startMeter(); reportAudioRoute();
 
     // Show Mode: hold the screen awake, and tell the user once
     if (document.getElementById('showModeToggle').classList.contains('on')) {
@@ -1873,38 +1916,39 @@ document.getElementById('showModeOk').addEventListener('click', () => {
 // DUCK now lives on the volume dial itself (hold-to-duck) — see initKnob().
 
 // ── AUTO TUNE: hold to fill, commits at 3s, release early cancels ──
+// Lives on both the Live tab and the EQ tab now (same control, two places) —
+// driven off a shared .tune-btn class so both copies stay in lockstep no
+// matter which one you're touching.
 (function () {
-  const btn  = document.getElementById('tuneBtn');
-  const fill = document.getElementById('tuneFill');
-  const lbl  = document.getElementById('tuneLbl');
-  const sub  = document.getElementById('tuneSub');
+  const btns = Array.from(document.querySelectorAll('.tune-btn'));
+  if (!btns.length) return;
+  const parts = (b) => ({ fill: b.querySelector('.fill'), lbl: b.querySelector('.lbl'), sub: b.querySelector('.sub') });
+  const each = (fn) => btns.forEach((b) => fn(b, parts(b)));
 
   function reset(msg, cls) {
     cancelAnimationFrame(tuneRAF); tuneRAF = null;
-    fill.style.width = '0%';
-    btn.classList.remove('armed');
+    each((b, p) => { p.fill.style.width = '0%'; b.classList.remove('armed'); });
     if (cls) {
-      btn.classList.add(cls);
-      lbl.textContent = msg;
-      setTimeout(() => { btn.classList.remove(cls); lbl.textContent = 'AUTO TUNE'; sub.textContent = 'hold 3s to sample'; }, 1800);
+      each((b, p) => { b.classList.add(cls); p.lbl.textContent = msg; });
+      setTimeout(() => each((b, p) => { b.classList.remove(cls); p.lbl.textContent = 'AUTO TUNE'; p.sub.textContent = 'hold 3s to sample'; }), 1800);
     } else {
-      lbl.textContent = 'AUTO TUNE'; sub.textContent = 'hold 3s to sample';
+      each((b, p) => { p.lbl.textContent = 'AUTO TUNE'; p.sub.textContent = 'hold 3s to sample'; });
     }
   }
 
   function start(e) {
     e.preventDefault();
     if (!audioCtx || !spectrumAnalyser) return;
-    btn.classList.remove('done');
-    btn.classList.add('armed');
+    each((b) => { b.classList.remove('done'); b.classList.add('armed'); });
     tuneStart = performance.now();
     tuneAccum = [0, 0, 0, 0, 0];
     tuneFrames = 0;
-    sub.textContent = 'listening…';
+    each((b, p) => { p.sub.textContent = 'listening…'; });
 
     function tick(now) {
       const held = now - tuneStart;
-      fill.style.width = Math.min(100, (held / TUNE_HOLD_MS) * 100) + '%';
+      const pct = Math.min(100, (held / TUNE_HOLD_MS) * 100) + '%';
+      each((b, p) => { p.fill.style.width = pct; });
       const bands = readBandEnergy();
       if (bands) { bands.forEach((v, i) => tuneAccum[i] += v); tuneFrames++; }
       if (held >= TUNE_HOLD_MS) {
@@ -1922,8 +1966,10 @@ document.getElementById('showModeOk').addEventListener('click', () => {
     if (tuneRAF) reset(null, null);
   }
 
-  btn.addEventListener('pointerdown', start);
-  ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => btn.addEventListener(ev, cancel));
+  btns.forEach((btn) => {
+    btn.addEventListener('pointerdown', start);
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach((ev) => btn.addEventListener(ev, cancel));
+  });
 })();
 
 // Power toggle now lives on the volume dial itself (tap) — see initKnob().
