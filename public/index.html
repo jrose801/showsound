@@ -394,7 +394,9 @@
                                  transition: opacity .16s; }
   .duck-display, .power-display { position: absolute; inset: 0; justify-content: center; opacity: 0; }
   .duck-display { color: var(--cyan); }
-  .power-display { color: var(--text-muted); }
+  /* Darker than the muted-text tone used everywhere else — this needs to
+     read as unlit against the knob face, not just as another dim label. */
+  .power-display { color: var(--metal-4); }
   .knob-stage.ducking .vol-display { opacity: 0; }
   .knob-stage.ducking .duck-display { opacity: 1; }
   .knob-stage.ducking .knob { filter: brightness(.72); }
@@ -410,10 +412,11 @@
   .vol-display .num { font-family: 'Space Grotesk', sans-serif; font-size: clamp(32px, 9.5vw, 46px); font-weight: 700;
                        line-height: 1; color: var(--metal-1); text-shadow: 0 0 20px var(--cyan-glow); }
   .duck-display svg { filter: drop-shadow(0 0 8px var(--cyan-glow)); margin-bottom: 4px; }
-  .duck-display .lbl, .power-display .lbl { font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 700;
+  .duck-display .lbl { font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 700;
                         letter-spacing: 1.5px; text-transform: uppercase; }
-  .power-display svg { margin-bottom: 6px; opacity: .8; }
-  .power-display .lbl { font-size: 10px; letter-spacing: 1.3px; }
+  /* No label needed: bigger + darker + fully opaque reads as "off" on its
+     own, matching the neutral, unlit ring and dot in the same state. */
+  .power-hint { margin-top: 7px; opacity: .3; color: var(--text-muted); }
   .unit { font-size: 10px; color: var(--text-muted); letter-spacing: .8px; margin-top: 4px; text-transform: uppercase; flex-shrink: 0; }
 
   /* ── PRESET CHIPS ───────────────────────────── */
@@ -852,14 +855,18 @@
               <div class="vol-display">
                 <h3>Volume</h3>
                 <div class="num" id="volLabel">40</div>
+                <!-- Same glyph as the big off-state icon below, just small and
+                     faint — repetition teaches that this icon is the power
+                     toggle in both directions, with no label needed either
+                     time. -->
+                <svg class="power-hint" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v6M6.3 5.3a8 8 0 1 0 11.4 0"/></svg>
               </div>
               <div class="duck-display">
                 <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M23 9 17 15M17 9l6 6"/></svg>
                 <div class="lbl">Ducked</div>
               </div>
               <div class="power-display">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v6M6.3 5.3a8 8 0 1 0 11.4 0"/></svg>
-                <div class="lbl">Tap to start</div>
+                <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-label="Powered off, tap to start"><path d="M12 2v6M6.3 5.3a8 8 0 1 0 11.4 0"/></svg>
               </div>
             </div>
           </div>
@@ -1105,6 +1112,7 @@ let sessionLog = [];
 let logLastT = 0;
 const LOG_MAX = 7500;            // ~2 hours at 1 Hz
 const LOG_KEY = 'ss_session_log';
+const EQ_KEY = 'ss_eq_bands';     // last EQ, saved on every change, restored on launch
 
 // Show Mode state
 let wakeLock = null;
@@ -1253,6 +1261,19 @@ function updateLimiter() {
 
 function setFilterGain(i, db) { if (filters[i]) filters[i].gain.value = db; bandVals[i] = db; }
 
+// Persists whatever's in bandVals right now — called after every slider
+// drag, preset pick, or Auto Tune commit — and reads it back on next launch
+// (see the INIT block near the end of the file), so the EQ survives closing
+// and reopening the app the same way the session log already did.
+function saveEq() { try { localStorage.setItem(EQ_KEY, JSON.stringify(bandVals)); } catch (e) {} }
+function loadSavedEq() {
+  try {
+    const arr = JSON.parse(localStorage.getItem(EQ_KEY));
+    if (Array.isArray(arr) && arr.length === BANDS.length) return arr;
+  } catch (e) {}
+  return null;
+}
+
 // ═══════════════════════════════════════════════
 // DUCK — hold to drop the feed so you can talk.
 // Not the same as pause: the mic keeps running, so you still hear the
@@ -1302,6 +1323,7 @@ function commitAutoTune() {
     renderEqFill(i, corr);
   });
   drawEqCurve();
+  saveEq();
   document.querySelectorAll('.preset-chip').forEach(c => c.classList.remove('active'));
   return 'ok';
 }
@@ -1711,6 +1733,7 @@ BANDS.forEach((band, i) => {
     setFilterGain(i, v);
     renderEqFill(i, v);
     drawEqCurve();
+    saveEq();
     document.querySelectorAll('.preset-chip').forEach(c => c.classList.remove('active'));
   });
   renderEqFill(i, 0);
@@ -1746,6 +1769,7 @@ function applyPreset(name) {
     renderEqFill(i, p[i]);
   });
   drawEqCurve();
+  saveEq();
 }
 
 // Preset chips live only on the EQ tab now, right above the curve they
@@ -2223,6 +2247,24 @@ try {
   const saved = localStorage.getItem(LOG_KEY);
   if (saved) { sessionLog = JSON.parse(saved) || []; setDiag('diagLogCount', sessionLog.length + ' samples'); }
 } catch (e) {}
+
+// Restore last EQ before any filter ever gets created — bandVals feeds
+// filters[i].gain.value at creation time in initAudio(), so setting it here
+// means the very first show after reopening the app already has your EQ,
+// not a flat start you have to re-dial in. Also reflects it in the sliders
+// immediately so the EQ tab shows the truth even before you tap power.
+const savedEq = loadSavedEq();
+if (savedEq) {
+  savedEq.forEach((v, i) => {
+    bandVals[i] = v;
+    const slider = document.getElementById('eqSlider' + i);
+    if (slider) slider.value = v;
+    const valEl = document.getElementById('eqVal' + i);
+    if (valEl) valEl.textContent = v > 0 ? '+' + v : v;
+    renderEqFill(i, v);
+  });
+  document.querySelectorAll('.preset-chip').forEach(c => c.classList.remove('active'));
+}
 
 setTimeout(() => {
   drawEqCurve(); drawLevelHistory(); updateSafeTime(); updateUI();
