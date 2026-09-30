@@ -122,6 +122,10 @@
   .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-muted); transition: all .25s; }
   .status-pill.active .status-dot { background: var(--cyan); box-shadow: 0 0 8px var(--cyan); animation: pulse 1.6s infinite; }
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+  /* Visible from the top bar, which a finger holding the dial never covers —
+     the other place ducking needs to read at a glance besides the ring. */
+  .status-pill.ducking { color: var(--text-dim); }
+  .status-pill.ducking .status-dot { background: var(--text-dim); box-shadow: none; animation: none; }
 
   .tab-host { flex: 1; position: relative; min-height: 0; overflow: hidden; }
   /* Subtle cross-fade + rise between tabs instead of an instant cut. Panels
@@ -130,10 +134,11 @@
      inactive panel still can't be scrolled into or focused via keyboard. */
   .tab-panel { position: absolute; inset: 0; display: flex; flex-direction: column;
                overflow-y: auto; -webkit-overflow-scrolling: touch;
-               opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(6px);
-               transition: opacity .22s ease, transform .22s ease, visibility 0s linear .22s; }
-  .tab-panel.active { opacity: 1; visibility: visible; pointer-events: auto; transform: translateY(0);
-                       transition: opacity .22s ease, transform .22s ease, visibility 0s linear 0s; }
+               opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(16px) scale(.98);
+               will-change: opacity, transform;
+               transition: opacity .32s cubic-bezier(.22,.61,.36,1), transform .32s cubic-bezier(.22,.61,.36,1), visibility 0s linear .32s; }
+  .tab-panel.active { opacity: 1; visibility: visible; pointer-events: auto; transform: translateY(0) scale(1);
+                       transition: opacity .32s cubic-bezier(.22,.61,.36,1), transform .32s cubic-bezier(.22,.61,.36,1), visibility 0s linear 0s; }
   /* Live never scrolls — it must always fit above the nav */
   #tab-live { overflow: hidden; }
 
@@ -361,13 +366,23 @@
     box-shadow: 0 1px 1px rgba(255,255,255,.1) inset, 0 -2px 6px rgba(0,0,0,.6) inset;
   }
   .knob-dot { position: absolute; left: 50%; top: 9%; width: 7px; height: 7px; margin-left: -3.5px;
-              border-radius: 50%; background: var(--cyan); box-shadow: 0 0 6px var(--cyan-glow), 0 0 2px #fff; z-index: 2; }
+              border-radius: 50%; background: var(--cyan); box-shadow: 0 0 6px var(--cyan-glow), 0 0 2px #fff;
+              z-index: 2; transition: background .18s, box-shadow .18s; }
   .knob-stage.active .knob { cursor: grabbing; }
   .knob-stage.active .knob-ring .val { filter: drop-shadow(0 0 8px var(--cyan-glow)); }
-  /* Paused/not-started: dial reads as visibly inactive until tapped again,
-     without hiding the value — only the ring's glow and halo dim. */
-  .knob-stage:not(.live):not(.active)::before { opacity: .16; }
-  .knob-stage:not(.live):not(.active) .knob-ring .val { opacity: .4; filter: none; }
+  /* Powered off: no color, no glow, anywhere on the dial — a blank, dead
+     instrument until tapped, not a dimmed-down version of the "on" look.
+     (A drag can still happen from off, to preview a level before powering
+     on — .active covers that one exception.) */
+  .knob-stage:not(.live):not(.active)::before { opacity: 0; }
+  .knob-stage:not(.live):not(.active) .knob-ring .val { opacity: 0; }
+  .knob-stage:not(.live):not(.active) .knob-dot { background: rgba(255,255,255,.22); box-shadow: none; }
+  /* Ducked: the ring, halo and reference dot all switch to a neutral tone —
+     a real signal change you can see around the rim even though a finger is
+     covering the center label that also says so. */
+  .knob-stage.ducking::before { opacity: .14; }
+  .knob-stage.ducking .knob-ring .val { stroke: var(--text-dim); filter: none; opacity: .55; }
+  .knob-stage.ducking .knob-dot { background: var(--text-dim); box-shadow: none; }
 
   /* Value display inside the dial, Nest-thermostat style. Sits centered
      over the knob face; pointer-events:none so it never interferes with
@@ -1003,7 +1018,15 @@
         <div class="diag-row"><span class="diag-key">Screen wake lock</span><span class="diag-val" id="diagWake">—</span></div>
         <div class="diag-row"><span class="diag-key">Sample rate</span><span class="diag-val" id="diagRate">—</span></div>
         <div class="diag-row"><span class="diag-key">Reported latency</span><span class="diag-val" id="diagLatency">—</span></div>
+        <!-- Added to pin down the reported gap under the nav bar with real
+             numbers instead of another guess — check this after redeploying
+             and report back what it says if the gap is still there. -->
+        <div class="diag-row"><span class="diag-key">Nav bar gap</span><span class="diag-val" id="diagLayout">—</span></div>
       </div>
+      <!-- Invisible probe: reads the actual safe-area-inset-bottom value on
+           this device via its own computed padding, for the diagnostic row
+           above. Not part of layout. -->
+      <div id="safeAreaProbe" style="position:fixed; left:0; bottom:0; width:0; height:0; padding-bottom:env(safe-area-inset-bottom); visibility:hidden; pointer-events:none;"></div>
       <div class="pad-bottom"></div>
     </div>
 
@@ -1388,6 +1411,27 @@ function reportAudioRoute() {
   setDiag('diagWake', wakeLockStatus);
 }
 function setDiag(id, txt) { const el = document.getElementById(id); if (el) el.textContent = txt; }
+
+// ── LAYOUT DIAGNOSTIC ──
+// Reads real numbers for the reported "space under the nav bar" gap instead
+// of guessing at another CSS fix blind. Runs regardless of mic/audio state
+// (including on the splash/permission screen) since that's where part of
+// the gap was reported.
+function updateLayoutDiag() {
+  const nav = document.querySelector('.nav-bar');
+  const probe = document.getElementById('safeAreaProbe');
+  if (!nav) return;
+  const vp = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+  const navBottom = nav.getBoundingClientRect().bottom;
+  const gap = Math.round(vp - navBottom);
+  const sab = probe ? (parseFloat(getComputedStyle(probe).paddingBottom) || 0) : 0;
+  setDiag('diagLayout', gap + 'px · safe-area ' + Math.round(sab) + 'px · viewport ' + Math.round(vp) + 'px');
+}
+window.addEventListener('resize', updateLayoutDiag);
+window.addEventListener('orientationchange', () => setTimeout(updateLayoutDiag, 250));
+if (window.visualViewport) window.visualViewport.addEventListener('resize', updateLayoutDiag);
+updateLayoutDiag();
+setTimeout(updateLayoutDiag, 500); // once more after fonts/layout settle
 function setDiagBool(id, actual) {
   const el = document.getElementById(id); if (!el) return;
   if (typeof actual !== 'boolean') { el.textContent = 'not reported'; el.className = 'diag-val warn'; return; }
@@ -1762,8 +1806,10 @@ document.querySelectorAll('.nav-item').forEach(item => {
     currentTab = tab;
     document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n === item));
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + tab));
-    // Canvases have zero width while hidden — redraw once visible
+    // Panels stay laid out now (see .tab-panel), so this is just a safety
+    // redraw rather than a fix for a zero-width canvas.
     requestAnimationFrame(() => { if (tab === 'live') drawLevelHistory(); if (tab === 'presets') drawEqCurve(); });
+    if (tab === 'settings') updateLayoutDiag();
   });
 });
 
@@ -2029,6 +2075,7 @@ function sizeKnob() {
 (function initKnob() {
   const stage = document.getElementById('volKnob');
   const input = document.getElementById('volSlider');
+  const pill = document.getElementById('statusPill');
   if (!stage || !input) return;
 
   // tick ring
@@ -2052,11 +2099,14 @@ function sizeKnob() {
   //   - moved past the slop threshold before either  → DRAG   → adjust volume
   // Whichever one is recognized "wins" for that touch; they can't combine,
   // same as a real dial only doing one thing at a time.
-  const TAP_SLOP = 10;     // px of movement still considered a stationary press
+  // A real fingertip on glass drifts several px even on a "still" tap —
+  // 10px was tuned against a mouse pointer and was misreading most taps as
+  // micro-drags on an actual phone, which silently ate the power toggle.
+  const TAP_SLOP = 18;     // px of movement still considered a stationary press
   const HOLD_MS = 320;     // stationary press longer than this becomes "duck"
 
   let dragging = false, startY = 0, startX = 0, startVal = 0;
-  let holdTimer = null, resolvedHold = false, resolvedDrag = false;
+  let holdTimer = null, resolvedHold = false, resolvedDrag = false, released = true;
 
   function clearHoldTimer() { if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; } }
 
@@ -2064,13 +2114,15 @@ function sizeKnob() {
     e.preventDefault();
     startX = e.clientX; startY = e.clientY;
     startVal = parseFloat(input.value);
-    dragging = false; resolvedHold = false; resolvedDrag = false;
+    dragging = false; resolvedHold = false; resolvedDrag = false; released = false;
     try { stage.setPointerCapture(e.pointerId); } catch (err) {}
     clearHoldTimer();
     holdTimer = setTimeout(() => {
       if (resolvedDrag) return; // already dragging — this touch is spoken for
       resolvedHold = true;
       stage.classList.add('ducking');
+      pill.classList.add('ducking');
+      setStatus('Ducked');
       if (audioCtx) setDuck(true);
     }, HOLD_MS);
   });
@@ -2097,11 +2149,22 @@ function sizeKnob() {
     }
   });
 
+  // iOS fires BOTH pointerup and pointerleave on the same physical release
+  // (releasing pointer capture makes the pointer "leave" the element right
+  // after "up"). Without a guard, this ran the whole resolve step twice per
+  // touch — the second, spurious run always fell into the plain-tap branch
+  // and immediately powered back off right after a duck release, which is
+  // exactly the "comes out of duck already off" bug. `released` makes only
+  // the first event of the pair actually do anything.
   ['pointerup', 'pointercancel', 'pointerleave'].forEach((ev) =>
     stage.addEventListener(ev, () => {
+      if (released) return;
+      released = true;
       clearHoldTimer();
       if (resolvedHold) {
         stage.classList.remove('ducking');
+        pill.classList.remove('ducking');
+        setStatus(isPlaying ? 'Live' : (audioCtx ? 'Paused' : 'Ready'));
         setDuck(false);
       } else if (!resolvedDrag && audioCtx) {
         if (isPlaying) pauseAudio(); else resumeAudio();
